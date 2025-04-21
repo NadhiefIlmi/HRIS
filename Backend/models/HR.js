@@ -5,6 +5,12 @@ const HRSchema = new mongoose.Schema({
     password: String,
     email: String,
     fullname: String,
+    photo: { type: String, default: '' },
+    gender: {
+        type: String,
+        enum: ['male', 'female'],
+        required: true
+    },
     phone_nmb: String,
     address: String
 });

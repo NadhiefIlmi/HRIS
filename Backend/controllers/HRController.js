@@ -2,6 +2,8 @@ const HR = require('../models/HR');
 const Employee = require('../models/Employee');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const path = require('path');
+const fs = require('fs');
 const mongoose = require('mongoose');
 const { blacklistedTokens } = require('../middleware/checkBlacklistedToken');
 
@@ -113,7 +115,7 @@ exports.getAllHR = async (req, res) => {
 exports.editProfileHR = async (req, res) => {
     try {
         const hrId = req.hr._id;
-        const { username, fullname, email, phone_nmb, address } = req.body;
+        const { username, fullname, email, phone_nmb, gender, address } = req.body;
 
         // Cek apakah HR dengan ID tersebut ada
         const hr = await HR.findById(hrId);
@@ -126,7 +128,18 @@ exports.editProfileHR = async (req, res) => {
         if (fullname) hr.fullname = fullname;
         if (email) hr.email = email;
         if (phone_nmb) hr.phone_nmb = phone_nmb;
+        if (gender) hr.gender = gender;
         if (address) hr.address = address;
+
+        if (req.file) {
+            if (hr.photo) {
+                const oldPath = path.join(__dirname, '..', 'utils', hr.photo.replace(/^\/+/,'')); // path relatif
+                if (fs.existsSync(oldPath)) {
+                    fs.unlinkSync(oldPath);
+                }
+            }
+            hr.photo = `/uploads/profile-photos/${req.file.filename}`;
+        }
 
         await hr.save();
         res.json({ message: 'HR profile updated successfully', hr });
@@ -208,3 +221,4 @@ exports.uploadSalarySlip = async (req, res) => {
         res.status(500).json({ message: 'Internal Server Error', error });
     }
 };
+

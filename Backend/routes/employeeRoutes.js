@@ -4,13 +4,14 @@ const employeeController = require('../controllers/employeeController');
 const authenticateEmployee = require('../middleware/authenticateEmployee');
 const { checkBlacklistedToken, blacklistedTokens } = require('../middleware/checkBlacklistedToken');
 const { route } = require('./resetPasswordRoutes');
+const { uploadProfilePhoto } = require('../utils/multerConfig');
 // const upload = require('../utils/multerConfig');
 
 router.post('/register', employeeController.registerEmployee);
 router.post('/login', employeeController.loginEmployee);
 router.post('/logout', authenticateEmployee, employeeController.logoutEmployee);
 router.get('/me', authenticateEmployee, checkBlacklistedToken, employeeController.personalDataEmployee);
-router.put('/edit', authenticateEmployee, checkBlacklistedToken, employeeController.editProfileEmployee);
+router.put('/edit', authenticateEmployee, checkBlacklistedToken, uploadProfilePhoto.single('file'), employeeController.editProfileEmployee);
 router.post('/education/add', authenticateEmployee, employeeController.addEducation);
 router.delete('/education/delete/:id', authenticateEmployee, employeeController.deleteEducation);
 router.post('/training/add', authenticateEmployee, employeeController.addTraining);

@@ -2,6 +2,8 @@ const Employee = require('../models/Employee');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
+const path = require('path');
+const fs = require('fs');
 const { blacklistedTokens } = require('../middleware/checkBlacklistedToken');
 const { sendLeaveNotification } = require('../utils/emailConfig');
 const Attendance = require('../models/Attendance');
@@ -77,7 +79,7 @@ exports.personalDataEmployee = async (req, res) => {
 exports.editProfileEmployee =  async (req, res) => {
     try {
         const employeeId = req.employee._id;
-        const { username, nik, email, dob, department, educationHistory, trainingHistory } = req.body;
+        const { username, nik, email, phone_nmb, gender, dob, department, educationHistory, trainingHistory } = req.body;
 
         // Cek apakah employee dengan ID tersebut ada
         const employee = await Employee.findById(employeeId);
@@ -90,8 +92,18 @@ exports.editProfileEmployee =  async (req, res) => {
         if (nik !== undefined) employee.nik = nik;
         if (email !== undefined) employee.email = email;
         if (dob !== undefined) employee.dob = dob;
+        if (phone_nmb !== undefined) employee.phone_nmb = phone_nmb;
+        if (gender !== undefined) employee.gender = gender;
         if (department !== undefined) employee.department = department;
-
+        if (req.file !== undefined) {
+            if (employee.photo) {
+                const oldPath = path.join(__dirname, '..', employee.photo); // path relatif
+                if (fs.existsSync(oldPath)) {
+                    fs.unlinkSync(oldPath);
+                }
+            }
+            employee.photo = `/uploads/profile-photos/${req.file.filename}`;
+        }
         // Update atau kosongkan riwayat pendidikan & training
         if (Array.isArray(educationHistory)) {
             employee.educationHistory = educationHistory; // Bisa kosong []

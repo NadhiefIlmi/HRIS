@@ -18,7 +18,13 @@ const EmployeeSchema = new mongoose.Schema({
     email: String,
     dob: Date,
     department: String,
-    photo: String,
+    phone_nmb: String,
+    photo: { type: String, default: '' },
+    gender: {
+        type: String,
+        enum: ['male', 'female'],
+        required: true
+    }, 
     educationHistory: [EducationSchema],
     trainingHistory: [TrainingSchema],
     salarySlip: { type: String, default: '' },
