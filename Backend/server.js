@@ -13,7 +13,7 @@ connectDB();
 
 /* ENDPOINT RESET PASSWORD */
 const resetPassword = require('./routes/resetPasswordRoutes');
-app.use('/', resetPassword);
+app.use('/api', resetPassword);
 /* ========================================================================================= */
 
 /* HR ONLY ROUTES */

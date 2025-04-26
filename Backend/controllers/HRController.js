@@ -6,6 +6,7 @@ const path = require('path');
 const fs = require('fs');
 const mongoose = require('mongoose');
 const { blacklistedTokens } = require('../middleware/checkBlacklistedToken');
+const LeaveRequest = require('../models/LeaveRequest');
 
 exports.registerHR = async (req, res) => {
     const { username, password } = req.body;
@@ -36,7 +37,7 @@ exports.loginHR = async (req, res) => {
     const validPass = await bcrypt.compare(password, hr.password);
     if (!validPass) return res.status(400).json({ message: 'Invalid password' });
 
-    const token = jwt.sign({ _id: hr._id, role: 'hr' }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    const token = jwt   .sign({ _id: hr._id, role: 'hr' }, process.env.JWT_SECRET, { expiresIn: '1h' });
     res.json({ token });
 };
 
@@ -152,11 +153,13 @@ exports.editProfileHR = async (req, res) => {
 exports.leaveApproval = async (req, res) => {
     try {
         const { status } = req.body;
+        console.log("Received status:", status);  // Debugging status yang diterima
         if (!['approved', 'rejected'].includes(status)) {
             return res.status(400).json({ message: 'Status must be either "approved" or "rejected".' });
         }
 
         const leaveRequest = await LeaveRequest.findById(req.params.id);
+        console.log("Leave Request Found:", leaveRequest);  // Debugging leave request ditemukan
         if (!leaveRequest) {
             return res.status(404).json({ message: 'Leave request not found' });
         }
@@ -167,13 +170,14 @@ exports.leaveApproval = async (req, res) => {
 
         leaveRequest.status = status;
         leaveRequest.approvedBy = req.hr._id;
+        console.log("Updating leaveRequest:", leaveRequest);  // Log untuk memeriksa leaveRequest
         await leaveRequest.save();
-
-        // Kurangi sisa cuti jika disetujui
+        
         if (status === 'approved' && leaveRequest.type === 'annual') {
             const employee = await Employee.findById(leaveRequest.employeeId);
+            console.log("Employee found:", employee);  // Log untuk memeriksa employee
             const totalDays = Math.ceil((new Date(leaveRequest.endDate) - new Date(leaveRequest.startDate)) / (1000 * 60 * 60 * 24)) + 1;
-            
+        
             employee.leaveInfo.usedAnnualLeave += totalDays;
             employee.leaveInfo.remainingAnnualLeave -= totalDays;
             await employee.save();
@@ -181,9 +185,11 @@ exports.leaveApproval = async (req, res) => {
 
         res.json({ message: `Leave request ${status} successfully`, leaveRequest });
     } catch (error) {
+        console.log("Error during leave approval:", error);  // Log error jika terjadi
         res.status(500).json({ message: 'Internal Server Error', error });
     }
 };
+
 
 // HR melihat semua pengajuan cuti
 exports.viewLeaveRequest = async (req, res) => {
@@ -222,3 +228,62 @@ exports.uploadSalarySlip = async (req, res) => {
     }
 };
 
+// HR melihat jumlah total karyawan
+exports.countEmployees = async (req, res) => {
+    try {
+        const totalEmployees = await Employee.countDocuments();
+        res.json({ totalEmployees });
+    } catch (error) {
+        res.status(500).json({ message: 'Internal Server Error', error });
+    }
+};
+
+// HR counts pending leave requests
+exports.countPendingLeaveRequests = async (req, res) => {
+    try {
+        const totalPendingRequests = await LeaveRequest.countDocuments({ status: 'pending' });
+        res.json({ totalPendingRequests });
+    } catch (error) {
+        console.error("[Count Pending Requests] Error:", error);
+        res.status(500).json({ message: 'Internal Server Error', error });
+    }
+};
+
+exports.changePassword = async (req, res) => {
+    const { oldPassword, newPassword } = req.body;
+    const hrId = req.hr._id; // ✅ perbaikan di sini
+  
+    try {
+      const hr = await HR.findById(hrId);
+      if (!hr) {
+        console.log("HR not found with ID:", hrId);
+        return res.status(404).json({ message: 'HR tidak ditemukan' });
+      }
+  
+      const isMatch = await bcrypt.compare(oldPassword, hr.password);
+      if (!isMatch) {
+        return res.status(400).json({ message: 'Password lama tidak sesuai' });
+      }
+  
+      const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+      hr.password = hashedNewPassword;
+      await hr.save();
+  
+      res.json({ message: 'Password berhasil diubah' });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: 'Terjadi kesalahan server' });
+    }
+  };
+  
+  exports.getGenderSummary = async (req, res) => {
+    try {
+        const maleCount = await Employee.countDocuments({ gender: 'male' });
+        const femaleCount = await Employee.countDocuments({ gender: 'female' });
+
+        res.json({ male: maleCount, female: femaleCount });
+    } catch (error) {
+        console.error('Error fetching gender summary:', error);
+        res.status(500).json({ message: 'Internal Server Error' });
+    }
+};

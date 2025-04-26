@@ -4,6 +4,8 @@ const hrController = require('../controllers/HRController');
 const authenticateHR = require('../middleware/authenticateHR');
 const { checkBlacklistedToken, blacklistedTokens } = require('../middleware/checkBlacklistedToken');
 const { uploadProfilePhoto, uploadSalarySlip } = require('../utils/multerConfig');
+const { changePassword } = require('../controllers/HRController');
+
 
 router.post('/register', hrController.registerHR);
 router.post('/login', hrController.loginHR);
@@ -17,5 +19,10 @@ router.put('/approve-leave/:id', authenticateHR, hrController.leaveApproval);
 router.get('/leave-requests', authenticateHR, hrController.viewLeaveRequest);
 router.get('/leave-requests/pending', authenticateHR, hrController.viewPendingLeaveRequest);
 router.post('/upload-salary-slip/:employeeId', authenticateHR, uploadSalarySlip.single('salarySlip'), hrController.uploadSalarySlip);
+router.get('/count-employees', authenticateHR, checkBlacklistedToken, hrController.countEmployees);
+router.get('/count-pending-leaves', authenticateHR, checkBlacklistedToken, hrController.countPendingLeaveRequests);
+router.post('/change-password', authenticateHR, changePassword);
+router.get('/gender-summary', authenticateHR, checkBlacklistedToken, hrController.getGenderSummary);
+
 
 module.exports = router;

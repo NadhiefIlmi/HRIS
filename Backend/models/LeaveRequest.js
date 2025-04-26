@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 const LeaveRequestSchema = new mongoose.Schema({
     employeeId: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee', required: true },
-    type: { type: String, enum: ['sick', 'annual', 'unpaid', 'other'], required: true },
+    type: { type: String, enum: ['sick', 'annual', 'personal', 'maternity', 'other'], required: true },
     startDate: { type: Date, required: true },
     endDate: { type: Date, required: true },
     reason: { type: String },

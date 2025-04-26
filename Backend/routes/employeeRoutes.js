@@ -20,5 +20,6 @@ router.post('/check-in', authenticateEmployee, employeeController.checkIn);
 router.post('/check-out', authenticateEmployee, employeeController.checkOut);
 router.post('/leave-request', authenticateEmployee, employeeController.leaveRequest);
 router.get('/salary-slip', authenticateEmployee, employeeController.salarySlip);
+router.get('/salary-slip/download', authenticateEmployee, employeeController.downloadSalarySlipToClient);
 
 module.exports = router;

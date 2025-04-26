@@ -126,7 +126,7 @@ function ProfilePage() {
 
   return (
     <div className="max-w-4xl mx-auto p-4">
-      <div className="bg-white rounded-2xl shadow-lg p-8 mb-6">
+      <div className="bg-white rounded-2xl shadow-md p-8 mb-6">
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-[#662b1f] mb-2">My Profile</h1>
         </div>
@@ -145,14 +145,11 @@ function ProfilePage() {
 
         {isEditing ? (
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="flex flex-col items-center mb-8">
-              <div
-                className="relative w-32 h-32 rounded-full overflow-hidden mb-4 bg-gray-200 cursor-pointer"
-                onClick={triggerFileInput}
-              >
+            <div className="flex items-center justify-center gap-6 mb-10">
+              <div className="w-32 h-32 rounded-full overflow-hidden bg-gray-200">
                 {imagePreview || profile.photo ? (
                   <img
-                    src={imagePreview || `http://localhost:5000${profile.photo}`} // Gunakan path yang benar
+                    src={imagePreview || `http://localhost:5000${profile.photo}`}
                     alt="Profile"
                     className="w-full h-full object-cover"
                   />
@@ -161,18 +158,25 @@ function ProfilePage() {
                     <User size={48} className="text-gray-400" />
                   </div>
                 )}
-                <div className="absolute bottom-0 right-0 bg-[#662b1f] p-2 rounded-full">
-                  <Camera size={16} className="text-white" />
-                </div>
               </div>
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileChange}
-                className="hidden"
-                accept="image/*"
-              />
-              <span className="text-sm text-gray-500">Click to change photo</span>
+
+              <div>
+                <button
+                  type="button"
+                  onClick={triggerFileInput}
+                  className="flex items-center gap-2 px-4 py-2 border border-[#662b1f] text-[#662b1f] hover:bg-[#662b1f] hover:text-white transition rounded-lg"
+                >
+                  <Camera size={18} />
+                </button>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  className="hidden"
+                  accept="image/*"
+                />
+                <p className="text-sm text-gray-500 mt-2">Allowed formats: JPG, PNG</p>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -264,7 +268,7 @@ function ProfilePage() {
               <div className="w-32 h-32 rounded-full overflow-hidden mb-4 bg-gray-200">
                 {profile.photo ? (
                   <img
-                    src={`http://localhost:5000${profile.photo}`} // Pastikan foto ditampilkan dengan path yang benar
+                    src={`http://localhost:5000${profile.photo}`}
                     alt="Profile"
                     className="w-full h-full object-cover"
                   />
@@ -303,6 +307,15 @@ function ProfilePage() {
                 className="px-4 py-2 bg-[#662b1f] text-white rounded-lg hover:bg-[#4e2118] transition"
               >
                 Edit Profile
+              </button>
+            </div>
+
+            <div className="flex justify-end mt-4">
+              <button
+                onClick={() => navigate('/password')}
+                className="px-4 py-2 bg-[#662b1f] text-white rounded-lg hover:bg-[#4e2118] transition"
+              >
+                Change Password
               </button>
             </div>
           </>

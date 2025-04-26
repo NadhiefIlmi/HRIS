@@ -11,8 +11,8 @@ const LeaveRequest = require('../models/LeaveRequest');
 
 
 exports.registerEmployee = async (req, res) => {
-    const { username, nik, dob, department, password } = req.body;
-    if (!username || !nik || !dob || !department || !password) {
+    const { username, nik, dob, department, password, gender } = req.body;
+    if (!username || !nik || !dob || !department || !password || !gender) {
         return res.status(400).json({ message: 'All fields are required' });
     }
 
@@ -20,11 +20,12 @@ exports.registerEmployee = async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
         const newEmployee = new Employee({
-            username, nik, dob, department, password: hashedPassword
+            username, nik, dob, department, gender, password: hashedPassword
         });
         await newEmployee.save();
         res.json({ message: 'Employee registered successfully' });
     } catch (err) {
+        console.error("Error in registerEmployee:", err); // Log error
         res.status(500).json({ message: 'Error registering Employee' });
     }
 };
@@ -295,7 +296,7 @@ exports.leaveRequest =  async (req, res) => {
             return res.status(400).json({ message: 'Type, start date, and end date are required.' });
         }
 
-        const allowedLeaveTypes = ['annual', 'sick', 'personal', 'maternity', 'bereavement'];
+        const allowedLeaveTypes = ['sick', 'annual', 'personal', 'maternity', 'other'];
         if (!allowedLeaveTypes.includes(type)) {
             return res.status(400).json({ message: `Invalid leave type. Allowed types: ${allowedLeaveTypes.join(', ')}` });
         }
@@ -347,6 +348,28 @@ exports.salarySlip =  async (req, res) => {
 
         // Pastikan URL bisa diakses dari browser
         res.json({ salarySlip: encodeURI(`${req.protocol}://${req.get('host')}${employee.salarySlip}`) });
+    } catch (error) {
+        res.status(500).json({ message: 'Internal Server Error', error });
+    }
+};
+
+exports.downloadSalarySlipToClient = async (req, res) => {
+    try {
+        const employee = await Employee.findById(req.employee._id);
+        if (!employee || !employee.salarySlip) {
+            return res.status(404).json({ message: 'No salary slip available' });
+        }
+
+        const slipPath = path.join(__dirname, '../utils', employee.salarySlip); // Sesuaikan dengan lokasi penyimpanan file
+        const fileName = path.basename(employee.salarySlip);
+
+        // Cek apakah file ada
+        res.download(slipPath, fileName, (err) => {
+            if (err) {
+                return res.status(500).json({ message: 'Failed to download file', error: err.message });
+            }
+        });
+
     } catch (error) {
         res.status(500).json({ message: 'Internal Server Error', error });
     }

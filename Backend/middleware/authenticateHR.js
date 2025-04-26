@@ -10,6 +10,7 @@ const authenticateHR = (req, res, next) => {
 
     try {
         const verified = jwt.verify(token, process.env.JWT_SECRET);
+        console.log("Verified token payload:", verified); // 👉 cek payload token
 
         // Pastikan role adalah HR
         if (verified.role !== 'hr') {
