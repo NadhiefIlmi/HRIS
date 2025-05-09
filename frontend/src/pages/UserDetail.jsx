@@ -94,6 +94,7 @@ function UserDetail() {
         // Format for date only (for DOB)
         if (!includeTimes) {
             const dateOptions = {
+                weekday: 'long',
                 day: '2-digit',
                 month: 'long',
                 year: 'numeric',
@@ -103,6 +104,7 @@ function UserDetail() {
 
         // Format for date with time (for attendance records, etc.)
         const dateOptions = {
+            weekday: 'long',
             day: '2-digit',
             month: 'long',
             year: 'numeric',

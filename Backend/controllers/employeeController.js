@@ -224,35 +224,54 @@ exports.deleteTraining =  async (req, res) => {
     }
 };
 
-exports.checkIn =  async (req, res) => {
+exports.checkIn = async (req, res) => {
     try {
-        const employee = await Employee.findById(req.employee._id).populate('attendanceRecords');
-        if (!employee) {
-            return res.status(404).json({ message: 'Employee not found' });
-        }
-
-        // Cek apakah sudah check-in tetapi belum check-out
-        const lastAttendance = employee.attendanceRecords.length > 0 
-            ? await Attendance.findById(employee.attendanceRecords[employee.attendanceRecords.length - 1])
-            : null;
-
-        if (lastAttendance && !lastAttendance.checkOut) {
-            return res.status(400).json({ message: 'You have already checked in but not checked out yet.' });
-        }
-
-        // Buat dokumen Attendance baru
-        const newAttendance = new Attendance({ checkIn: new Date() });
-        await newAttendance.save();
-
-        // Tambahkan ke employee
-        employee.attendanceRecords.push(newAttendance._id);
-        await employee.save();
-
-        res.status(201).json({ message: 'Check-in recorded successfully', attendance: newAttendance });
+      const employee = await Employee.findById(req.employee._id).populate('attendanceRecords');
+      if (!employee) {
+        return res.status(404).json({ message: 'Employee not found' });
+      }
+  
+      // Cek apakah sudah check-in tetapi belum check-out
+      const lastAttendance = employee.attendanceRecords.length > 0
+        ? await Attendance.findById(employee.attendanceRecords[employee.attendanceRecords.length - 1])
+        : null;
+  
+      if (lastAttendance && !lastAttendance.checkOut) {
+        return res.status(400).json({ message: 'You have already checked in but not checked out yet.' });
+      }
+  
+      // Hitung awal dan akhir hari ini
+      const startOfToday = new Date();
+      startOfToday.setHours(0, 0, 0, 0);
+  
+      const endOfToday = new Date();
+      endOfToday.setHours(23, 59, 59, 999);
+  
+      // Cari apakah sudah ada attendance hari ini
+      const todayAttendance = await Attendance.findOne({
+        _id: { $in: employee.attendanceRecords },
+        checkIn: { $gte: startOfToday, $lte: endOfToday }
+      });
+  
+      if (todayAttendance) {
+        return res.status(400).json({ message: 'You have already checked in today.' });
+      }
+  
+      // Buat dokumen Attendance baru
+      const newAttendance = new Attendance({ checkIn: new Date() });
+      await newAttendance.save();
+  
+      // Tambahkan ke employee
+      employee.attendanceRecords.push(newAttendance._id);
+      await employee.save();
+  
+      res.status(201).json({ message: 'Check-in recorded successfully', attendance: newAttendance });
     } catch (error) {
-        res.status(500).json({ message: 'Internal Server Error', error });
+      console.error('Check-in error:', error);
+      res.status(500).json({ message: 'Internal Server Error', error });
     }
-};
+  };
+  
 
 exports.checkOut =  async (req, res) => {
     try {
@@ -288,6 +307,37 @@ exports.checkOut =  async (req, res) => {
         res.status(500).json({ message: 'Internal Server Error', error });
     }
 };
+
+exports.getTodayAttendance = async (req, res) => {
+    try {
+      const employee = await Employee.findById(req.employee._id).populate('attendanceRecords');
+      if (!employee) {
+        return res.status(404).json({ message: 'Employee not found' });
+      }
+  
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+  
+      const todayAttendance = employee.attendanceRecords
+        .map(record => record instanceof mongoose.Document ? record : null)
+        .filter(record => record?.checkIn && new Date(record.checkIn).setHours(0, 0, 0, 0) === today.getTime());
+  
+      if (todayAttendance.length === 0) {
+        return res.json({ checkIn: null, checkOut: null });
+      }
+  
+      const attendance = todayAttendance[todayAttendance.length - 1];
+      res.json({
+        checkIn: attendance.checkIn,
+        checkOut: attendance.checkOut,
+        workHours: attendance.workHours
+      });
+    } catch (error) {
+      console.error('Error getting today attendance:', error);
+      res.status(500).json({ message: 'Internal server error', error });
+    }
+  };
+  
 
 exports.leaveRequest =  async (req, res) => {
     try {
@@ -338,6 +388,45 @@ exports.leaveRequest =  async (req, res) => {
     }
 };
 
+// Controller untuk melihat permintaan cuti yang sudah diajukan oleh karyawan
+exports.getLeaveRequests = async (req, res) => {
+    try {
+        const leaveRequests = await LeaveRequest.find({ employeeId: req.employee._id })
+            .populate('employeeId', 'username')
+            .exec();
+
+        // Jangan kembalikan status 404 jika kosong
+        res.status(200).json({ leaveRequests });
+    } catch (error) {
+        res.status(500).json({ message: 'Internal Server Error', error });
+    }
+};
+
+
+// Controller untuk menghapus permintaan cuti
+exports.deleteLeaveRequest = async (req, res) => {
+    try {
+        const leaveRequest = await LeaveRequest.findById(req.params.id);
+        
+        if (!leaveRequest) {
+            return res.status(404).json({ message: 'Leave request not found.' });
+        }
+
+        // Menghapus permintaan cuti tanpa memeriksa status
+        await LeaveRequest.findByIdAndDelete(req.params.id);
+        await Employee.findByIdAndUpdate(
+            req.employee._id,
+            { $pull: { leaveRecords: req.params.id } },
+            { new: true }
+        );
+
+        res.status(200).json({ message: 'Leave request deleted successfully.' });
+    } catch (error) {
+        res.status(500).json({ message: 'Internal Server Error', error });
+    }
+};
+
+
 exports.salarySlip =  async (req, res) => {
     try {
         const employee = await Employee.findById(req.employee._id);
@@ -380,3 +469,57 @@ exports.logoutEmployee =  (req, res) => {
     blacklistedTokens.add(token);
     res.json({ message: 'Logged out successfully' });
 };
+
+exports.changePassword = async (req, res) => {
+    const { oldPassword, newPassword } = req.body;
+    const employeeId = req.employee._id;
+  
+    try {
+      console.log(`Request received to change password for Employee ID: ${employeeId}`);
+  
+      const employee = await Employee.findById(employeeId);
+      if (!employee) {
+        console.error('Employee not found');
+        return res.status(404).json({ message: 'Employee tidak ditemukan' });
+      }
+  
+      console.log('Comparing old password...');
+      const isMatch = await bcrypt.compare(oldPassword, employee.password);
+      if (!isMatch) {
+        console.error('Old password does not match');
+        return res.status(400).json({ message: 'Password lama tidak sesuai' });
+      }
+  
+      console.log('Hashing new password...');
+      const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+      employee.password = hashedNewPassword;
+  
+      await employee.save();
+      console.log('Password updated successfully');
+  
+      res.json({ message: 'Password berhasil diubah' });
+    } catch (err) {
+      console.error('Error during password change:', err);
+      res.status(500).json({ message: 'Terjadi kesalahan server' });
+    }
+  };
+
+ // GET /api/employee/attendance/history
+exports.getAttendanceHistory = async (req, res) => {
+    try {
+      const employee = await Employee.findById(req.employee._id).populate({
+        path: 'attendanceRecords',
+        options: { sort: { checkIn: -1 } } // Urutkan dari terbaru
+      });
+  
+      if (!employee) {
+        return res.status(404).json({ message: 'Employee not found' });
+      }
+  
+      res.json(employee.attendanceRecords);
+    } catch (error) {
+      console.error('Error fetching attendance history:', error);
+      res.status(500).json({ message: 'Internal server error', error });
+    }
+  };
+  

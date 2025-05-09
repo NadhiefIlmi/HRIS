@@ -36,6 +36,7 @@ const EmployeeSchema = new mongoose.Schema({
         remainingAnnualLeave: { type: Number, default: 12 } // Sisa cuti
     },
     leaveRecords: [{ type: mongoose.Schema.Types.ObjectId, ref: 'LeaveRequest' }]
+
 });
 
 module.exports = mongoose.model('Employee',EmployeeSchema);
