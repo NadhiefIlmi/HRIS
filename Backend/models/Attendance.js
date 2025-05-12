@@ -7,8 +7,8 @@ const AttendanceSchema = new mongoose.Schema({
 }, { 
     toJSON: { 
         transform: (doc, ret) => {
-            ret.checkIn = ret.checkIn ? new Date(ret.checkIn).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' }) : null;
-            ret.checkOut = ret.checkOut ? new Date(ret.checkOut).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' }) : null;
+            ret.checkIn = ret.checkIn ? ret.checkIn.toISOString() : null;
+            ret.checkOut = ret.checkOut ? ret.checkOut.toISOString() : null;
 
             // Konversi workHours ke jam dan menit
             const totalMinutes = Math.round(ret.workHours * 60);

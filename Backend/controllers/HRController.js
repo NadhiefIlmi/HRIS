@@ -6,6 +6,7 @@ const path = require('path');
 const fs = require('fs');
 const mongoose = require('mongoose');
 const { blacklistedTokens } = require('../middleware/checkBlacklistedToken');
+const LeaveRequest = require('../models/LeaveRequest');
 
 exports.registerHR = async (req, res) => {
     const { username, password } = req.body;
@@ -222,3 +223,62 @@ exports.uploadSalarySlip = async (req, res) => {
     }
 };
 
+// HR melihat jumlah total karyawan
+exports.countEmployees = async (req, res) => {
+    try {
+        const totalEmployees = await Employee.countDocuments();
+        res.json({ totalEmployees });
+    } catch (error) {
+        res.status(500).json({ message: 'Internal Server Error', error });
+    }
+};
+
+// HR counts pending leave requests
+exports.countPendingLeaveRequests = async (req, res) => {
+    try {
+        const totalPendingRequests = await LeaveRequest.countDocuments({ status: 'pending' });
+        res.json({ totalPendingRequests });
+    } catch (error) {
+        console.error("[Count Pending Requests] Error:", error);
+        res.status(500).json({ message: 'Internal Server Error', error });
+    }
+};
+
+exports.changePassword = async (req, res) => {
+    const { oldPassword, newPassword } = req.body;
+    const hrId = req.hr._id; // ✅ perbaikan di sini
+  
+    try {
+      const hr = await HR.findById(hrId);
+      if (!hr) {
+        console.log("HR not found with ID:", hrId);
+        return res.status(404).json({ message: 'HR tidak ditemukan' });
+      }
+  
+      const isMatch = await bcrypt.compare(oldPassword, hr.password);
+      if (!isMatch) {
+        return res.status(400).json({ message: 'Password lama tidak sesuai' });
+      }
+  
+      const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+      hr.password = hashedNewPassword;
+      await hr.save();
+  
+      res.json({ message: 'Password berhasil diubah' });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ message: 'Terjadi kesalahan server' });
+    }
+  };
+  
+exports.getGenderSummary = async (req, res) => {
+    try {
+        const maleCount = await Employee.countDocuments({ gender: 'male' });
+        const femaleCount = await Employee.countDocuments({ gender: 'female' });
+
+        res.json({ male: maleCount, female: femaleCount });
+    } catch (error) {
+        console.error('Error fetching gender summary:', error);
+        res.status(500).json({ message: 'Internal Server Error' });
+    }
+};

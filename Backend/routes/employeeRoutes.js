@@ -3,9 +3,7 @@ const router = express.Router();
 const employeeController = require('../controllers/employeeController');
 const authenticateEmployee = require('../middleware/authenticateEmployee');
 const { checkBlacklistedToken, blacklistedTokens } = require('../middleware/checkBlacklistedToken');
-const { route } = require('./resetPasswordRoutes');
 const { uploadProfilePhoto } = require('../utils/multerConfig');
-// const upload = require('../utils/multerConfig');
 
 router.post('/register', employeeController.registerEmployee);
 router.post('/login', employeeController.loginEmployee);
@@ -19,6 +17,13 @@ router.delete('/training/delete/:id', authenticateEmployee, employeeController.d
 router.post('/check-in', authenticateEmployee, employeeController.checkIn);
 router.post('/check-out', authenticateEmployee, employeeController.checkOut);
 router.post('/leave-request', authenticateEmployee, employeeController.leaveRequest);
+router.get('/leave-requests/status', authenticateEmployee, employeeController.getLeaveRequests);  // Endpoint untuk melihat permintaan cuti
+router.delete('/leave-request/:id', authenticateEmployee, employeeController.deleteLeaveRequest);  // Endpoint untuk menghapus permintaan cuti
 router.get('/salary-slip', authenticateEmployee, employeeController.salarySlip);
+router.get('/salary-slip/download', authenticateEmployee, employeeController.downloadSalarySlipToClient);
+router.put('/change-password', authenticateEmployee,  employeeController.changePassword);
+router.get('/attendance/today', authenticateEmployee, employeeController.getTodayAttendance);
+
+router.get('/attendance/history', authenticateEmployee, employeeController.getAttendanceHistory);
 
 module.exports = router;

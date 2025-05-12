@@ -1,23 +1,32 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Users, Calendar, Upload, LogOut } from 'lucide-react';
+import { 
+  Home, 
+  Users, 
+  Calendar, 
+  LogOut, 
+  Settings, 
+  ChevronRight,
+  Menu,
+  X
+} from 'lucide-react';
 import ChateraiseLogo from '../assets/Chateraise2.png';
 import API from '../api/api';
 
 const NavLink = ({ to, icon: Icon, label }) => {
   const location = useLocation();
-  const isActive = location.pathname === to;
+  const isActive = location.pathname === to || location.pathname.startsWith(`${to}/`);
 
   return (
     <Link
       to={to}
-      className={`flex items-center gap-4 px-5 py-3 rounded-lg transition-colors ${isActive
-          ? 'bg-[#662b1f] text-white font-semibold'
-          : 'text-[#4a3b36] hover:bg-[#f5e8e0]'
+      className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ${isActive
+          ? 'bg-gradient-to-r from-[#662b1f] to-[#8a3b2d] text-white font-medium shadow-md'
+          : 'text-gray-700 hover:bg-[#f5e8e0] hover:text-[#662b1f]'
         }`}
     >
-      <Icon size={20} />
-      <span className="whitespace-nowrap">{label}</span>
+      <Icon size={18} strokeWidth={isActive ? 2.5 : 2} />
+      <span className="text-sm whitespace-nowrap">{label}</span>
     </Link>
   );
 };
@@ -25,11 +34,21 @@ const NavLink = ({ to, icon: Icon, label }) => {
 function DashboardLayout({ children }) {
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
-
+  const [notificationCount, setNotificationCount] = useState(3);
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [formData, setFormData] = useState({
+        username: ''
+      });
+  
+  // Fetch Profile from the API
   const fetchProfile = async () => {
     try {
       const response = await API.get('/api/hr/me');
       setProfile(response.data);
+      setFormData({
+        username: response.data.username || ''
+      });
     } catch (err) {
       console.error('Error fetching profile for avatar:', err);
       if (err.response && err.response.status === 401) {
@@ -41,68 +60,197 @@ function DashboardLayout({ children }) {
 
   useEffect(() => {
     fetchProfile();
+
+    // Update time every minute
+    const timeInterval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000);
+
+    return () => clearInterval(timeInterval);
   }, []);
 
-  const handleLogout = () => {
-    localStorage.clear();
-    navigate('/');
+  useEffect(() => {
+    // Close sidebar when screen gets larger
+    const handleResize = () => {
+      if (window.innerWidth > 1024 && sidebarOpen) {
+        setSidebarOpen(false);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [sidebarOpen]);
+
+  const handleLogout = async () => {
+    try {
+      const token = localStorage.getItem('token');
+
+      if (token) {
+        await API.post('/api/hr/logout', {}, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+      }
+
+      localStorage.clear();
+      navigate('/');
+    } catch (error) {
+      console.error('Error logging out:', error);
+      localStorage.clear();
+      navigate('/');
+    }
   };
 
-  const username = localStorage.getItem('username') || 'User';
-  const capitalizedName = username.charAt(0).toUpperCase() + username.slice(1);
+  if (!profile) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <p className="text-gray-500 text-sm">Please wait...</p>
+      </div>
+    );
+  }
+
+  const capitalizedName = profile.username
+  ? profile.username.charAt(0).toUpperCase() + profile.username.slice(1)
+  : '';
+  
+  const formattedDate = currentTime.toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
 
   return (
-    <div className="flex min-h-screen w-full bg-[#fefcfb]">
+    <div className="flex h-screen bg-[#f8f5f3] overflow-hidden">
+      {/* Mobile Overlay */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-20 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="w-64 bg-white border-r px-6 py-8 flex flex-col min-h-screen rounded-l-2xl shadow-xl">
-        <div className="mb-10 flex justify-center">
-          <img
-            src={ChateraiseLogo}
-            alt="Chateraise Logo"
-            className="h-14 object-contain"
-          />
+      <aside 
+        className={`fixed lg:static w-72 bg-white h-full border-r border-[#f0e8e4] py-8 flex flex-col z-30 shadow-xl transition-all duration-300 transform ${
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        }`}
+      >
+        <div className="mb-10 px-6">
+          <div className="flex items-center justify-between mb-6">
+            <img
+              src={ChateraiseLogo}
+              alt="Chateraise Logo"
+              className="h-12 object-contain"
+            />
+            <button 
+              className="lg:hidden text-gray-500 hover:text-[#662b1f]"
+              onClick={() => setSidebarOpen(false)}
+            >
+              <X size={24} />
+            </button>
+          </div>
+
+          <div className="bg-[#fdf6f3] rounded-2xl p-4 shadow-sm backdrop-blur-sm border border-[#f0e8e4]">
+            {profile?.photo ? (
+              <div className="flex items-center gap-3">
+                <img
+                  src={`${API.defaults.baseURL}${profile.photo}`}
+                  alt="Avatar"
+                  className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-md"
+                />
+                <div>
+                  <h4 className="font-semibold text-[#662b1f]">{capitalizedName}</h4>
+                  <p className="text-xs text-gray-500">HR Manager</p>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#662b1f] to-[#8a3b2d] flex items-center justify-center text-white font-semibold text-lg shadow-md border-2 border-white">
+                  {capitalizedName.charAt(0)}
+                </div>
+                <div>
+                  <h4 className="font-semibold text-[#662b1f]">{capitalizedName}</h4>
+                  <p className="text-xs text-gray-500">HR Manager</p>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
-        <nav className="flex flex-col gap-6">
+        {/* Main Menu */}
+        <nav className="flex-1 px-4 flex flex-col gap-2 overflow-y-auto scrollbar-thin scrollbar-thumb-[#f0e8e4] scrollbar-track-transparent">
+          <p className="px-4 text-xs font-medium text-gray-400 mb-1 uppercase tracking-wider">Main Menu</p>
           <NavLink to="/dashboard" icon={Home} label="Dashboard" />
-          <NavLink to="/employees" icon={Users} label="Employees" />
-          <NavLink to="/leave-requests" icon={Calendar} label="Leave Requests" />
-          <NavLink to="/upload-salary" icon={Upload} label="Upload Salary Slip" />
+          <div className="flex flex-col gap-1">
+            <NavLink to="/employees" icon={Users} label="Employees" />
+            {/* Link to Add Employee page */}
+            <Link
+              to="/employees/add"
+              className="ml-10 text-xs text-[#662b1f] px-3 py-2 rounded-lg hover:bg-[#f5e8e0] transition flex items-center gap-2"
+            >
+              <span className="w-4 h-4 bg-[#662b1f] text-white rounded-full flex items-center justify-center text-xs font-bold">+</span>
+              <span>Add Employee</span>
+            </Link>
+          </div>
 
+          <NavLink to="/leave-requests" icon={Calendar} label="Leave Requests" />
+        </nav>
+
+        {/* Logout Button */}
+        <div className="mt-auto mb-6 px-6">
           <button
             onClick={handleLogout}
-            className="flex items-center gap-4 px-5 py-3 rounded-lg text-[#4a3b36] hover:bg-[#f5e8e0] transition-colors mt-auto"
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-white bg-gradient-to-r from-red-600 to-[#662b1f] hover:shadow-md transition-all duration-200 hover:scale-105"
           >
-            <LogOut size={20} />
-            <span>Logout</span>
+            <LogOut size={18} />
+            <span className="text-sm font-medium">Logout</span>
           </button>
-        </nav>
+        </div>
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 bg-white p-8 rounded-r-2xl shadow-xl">
+      <main className="flex-1 flex flex-col h-screen overflow-hidden">
         {/* Header */}
-        <Link
-          to="/profile"
-          className="flex justify-end items-center mb-6 space-x-4 cursor-pointer hover:opacity-80 transition"
-        >
-          {profile?.photo ? (
-            <img
-              src={`http://localhost:5000${profile.photo}`}
-              alt="Avatar"
-              className="w-10 h-10 rounded-full object-cover shadow-md"
-            />
-          ) : (
-            <div className="w-10 h-10 rounded-full bg-[#662b1f] flex items-center justify-center text-white font-semibold text-lg shadow-md">
-              {capitalizedName.charAt(0)}
+        <header className="bg-white p-6 flex justify-between items-center border-b border-[#f0e8e4] shadow-sm sticky top-0 z-10">
+          <div className="flex items-center gap-4">
+            <button
+              className="lg:hidden text-[#662b1f] hover:bg-[#f5e8e0] p-2 rounded-lg"
+              onClick={() => setSidebarOpen(true)}
+            >
+              <Menu size={24} />
+            </button>
+            <div>
+              <h1 className="text-xl md:text-2xl font-bold text-[#662b1f] flex items-center">
+                Welcome back, {capitalizedName}
+                <span className="hidden sm:inline-block ml-2 px-3 py-1 bg-[#f5e8e0] text-xs rounded-full text-[#662b1f] font-normal">
+                  HR Manager
+                </span>
+              </h1>
+              <p className="text-xs md:text-sm text-gray-500">{formattedDate}</p>
             </div>
-          )}
-          <div className="flex flex-col justify-center">
-            <span className="text-[#662b1f] font-semibold text-xl">{capitalizedName}</span>
-            <span className="text-sm text-gray-500">HR Manager</span>
           </div>
-        </Link>
-        {children}
+
+          <div className="flex items-center gap-3 md:gap-6">
+            
+            <Link
+              to="/profile"
+              className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-[#f5e8e0] transition-colors border border-[#f0e8e4]"
+            >
+              <span className="font-medium text-gray-800 text-sm">My Profile</span>
+              <ChevronRight size={16} className="text-[#662b1f]" />
+            </Link>
+          </div>
+        </header>
+
+        {/* Content Area */}
+        <div className="flex-1 p-4 md:p-8 overflow-auto">
+          <div className="bg-white rounded-2xl shadow-md p-6 md:p-8 min-h-full border border-[#f0e8e4]">
+            {/* Main children content */}
+            {children}
+          </div>
+        </div>
       </main>
     </div>
   );
