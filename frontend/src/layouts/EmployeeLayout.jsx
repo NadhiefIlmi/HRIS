@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   Home, Calendar, FileText, LogOut, ChevronRight, ChevronDown,
-  User, Folder, GraduationCap, ClipboardList, File, Plane, Menu, X
+  User, Folder, GraduationCap, ClipboardList, File, Plane, Menu, X,
+  ListCheck
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ChateraiseLogo from '../assets/Chateraise2.png';
@@ -240,6 +241,12 @@ function EmployeeLayout({ children }) {
             to="/employee/salary-slip" 
             icon={File} 
             label="Salary Slips" 
+            onClick={() => setMobileMenuOpen(false)}
+          />
+          <NavLink 
+            to="/employee/attendance" 
+            icon={ListCheck} 
+            label="Attendance" 
             onClick={() => setMobileMenuOpen(false)}
           />
         </motion.nav>

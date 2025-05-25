@@ -1,12 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import API from '../api/api';
+import API from '../../api/api';
 import { Calendar, User, Briefcase, Clock, CheckCircle, XCircle, AlertCircle, Loader2 } from 'lucide-react';
+import useDocumentTitle from '../../hooks/useDocumentTitle';
 
 function LeaveRequestsPage() {
   const [leaveRequests, setLeaveRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [notification, setNotification] = useState({ type: null, message: null });
   const [processingId, setProcessingId] = useState(null);
+
+  useDocumentTitle("Leave Requests Page");
 
   const fetchLeaveRequests = async () => {
     try {

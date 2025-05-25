@@ -5,9 +5,10 @@ import {
   ClipboardList, Briefcase, TrendingUp, User
 } from 'lucide-react';
 import { motion } from 'framer-motion';
-import API from '../api/api';
+import API from '../../api/api';
+import useDocumentTitle from '../../hooks/useDocumentTitle';
 
-function EmployeeDashboard() {
+function EmployeeHome() {
   const [employee, setEmployee] = useState(null);
   const [loading, setLoading] = useState(true);
   const [checkInLoading, setCheckInLoading] = useState(false);
@@ -16,6 +17,8 @@ function EmployeeDashboard() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [attendanceData, setAttendanceData] = useState([]);
   const [attendanceLoading, setAttendanceLoading] = useState(true);
+
+   useDocumentTitle("Employee Home");
 
   useEffect(() => {
     fetchProfile();
@@ -292,4 +295,4 @@ function EmployeeDashboard() {
   );
 }
 
-export default EmployeeDashboard;
+export default EmployeeHome;

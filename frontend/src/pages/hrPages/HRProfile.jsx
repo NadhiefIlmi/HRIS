@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import API from '../api/api';
+import API from '../../api/api';
 import { Camera, Loader2, Save, User, Edit, Lock, ChevronRight, Mail, Phone, MapPin, AtSign } from 'lucide-react';
+import useDocumentTitle from '../../hooks/useDocumentTitle';
 
-function ProfilePage() {
+function HRProfile() {
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -24,6 +25,8 @@ function ProfilePage() {
 
   const [imagePreview, setImagePreview] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
+
+  useDocumentTitle("My Profile");
 
   useEffect(() => {
     fetchProfile();
@@ -369,4 +372,4 @@ function ProfilePage() {
   );
 }
 
-export default ProfilePage;
+export default HRProfile;

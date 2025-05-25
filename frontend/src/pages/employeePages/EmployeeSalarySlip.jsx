@@ -1,10 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import API from '../api/api';
+import API from '../../api/api';
+import useDocumentTitle from '../../hooks/useDocumentTitle';
 
-const SalarySlip = () => {
+const EmployeeSalarySlip = () => {
   const [salarySlipUrl, setSalarySlipUrl] = useState('');
   const [error, setError] = useState('');
   const token = localStorage.getItem('token');
+
+  useDocumentTitle("Salary Slip");
 
   useEffect(() => {
     const fetchSalarySlip = async () => {
@@ -87,4 +90,4 @@ const SalarySlip = () => {
   );
 };
 
-export default SalarySlip;
+export default EmployeeSalarySlip;

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { GraduationCap, Trash2, PlusCircle, School, Calendar } from 'lucide-react';
-import API from '../api/api';
+import API from '../../api/api';
+import useDocumentTitle from '../../hooks/useDocumentTitle';
 
 const EducationHistory = () => {
   const [educationHistory, setEducationHistory] = useState([]);
@@ -8,6 +9,8 @@ const EducationHistory = () => {
   const [error, setError] = useState('');
   const [isAdding, setIsAdding] = useState(false);
   const token = localStorage.getItem('token');
+
+  useDocumentTitle("Education History");
 
   const fetchEducation = async () => {
     try {

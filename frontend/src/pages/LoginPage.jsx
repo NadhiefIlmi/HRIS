@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import API from '../api/api';
 import ChateraiseLogo from '../assets/Chateraise1.png';
 import SideImage from '../assets/image.jpg';
+import useDocumentTitle from '../hooks/useDocumentTitle';
 
 function LoginPage() {
   const [username, setUsername] = useState('');
@@ -15,6 +16,8 @@ function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
   const navigate = useNavigate();
+
+   useDocumentTitle("Login - Chateraise HR System");
 
   useEffect(() => {
     // Set current time on load

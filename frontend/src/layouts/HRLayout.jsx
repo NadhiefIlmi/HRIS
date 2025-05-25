@@ -31,7 +31,7 @@ const NavLink = ({ to, icon: Icon, label }) => {
   );
 };
 
-function DashboardLayout({ children }) {
+function HRLayout({ children }) {
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [notificationCount, setNotificationCount] = useState(3);
@@ -256,4 +256,4 @@ function DashboardLayout({ children }) {
   );
 }
 
-export default DashboardLayout;
+export default HRLayout;

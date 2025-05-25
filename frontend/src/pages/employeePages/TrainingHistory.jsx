@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Award, Trash2, PlusCircle, BookOpen, Calendar, Building2 } from 'lucide-react';
-import API from '../api/api';
+import API from '../../api/api';
+import useDocumentTitle from '../../hooks/useDocumentTitle';
 
 function TrainingHistory() {
   const [employee, setEmployee] = useState(null);
@@ -9,6 +10,8 @@ function TrainingHistory() {
   const [error, setError] = useState('');
   const [isAdding, setIsAdding] = useState(false);
   const token = localStorage.getItem('token');
+
+  useDocumentTitle("Training History");
 
   useEffect(() => {
     fetchProfile();

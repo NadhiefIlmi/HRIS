@@ -223,6 +223,22 @@ exports.uploadSalarySlip = async (req, res) => {
     }
 };
 
+exports.getSalarySlip =  async (req, res) => {
+    try {
+        const employee = await Employee.findById(req.params.employeeId);
+        console.log(employee);
+        if (!employee || !employee.salarySlip) {
+            return res.status(404).json({ message: 'No salary slip available' });
+        }
+
+        // Pastikan URL bisa diakses dari browser
+        res.json({ salarySlip: encodeURI(`${req.protocol}://${req.get('host')}${employee.salarySlip}`) });
+    } catch (error) {
+        res.status(500).json({ message: 'Internal Server Error', error });
+        console.log(error);
+    }
+};
+
 // HR melihat jumlah total karyawan
 exports.countEmployees = async (req, res) => {
     try {

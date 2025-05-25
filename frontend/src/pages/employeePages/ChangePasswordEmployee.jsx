@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Loader2, Save, ArrowLeft, Eye, EyeOff, Lock } from "lucide-react";
 
-export default function PasswordEmployee() {
+export default function ChangePasswordEmployee() {
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");

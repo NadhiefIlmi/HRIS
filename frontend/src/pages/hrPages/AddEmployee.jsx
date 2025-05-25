@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import API from '../api/api';
+import API from '../../api/api';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useNavigate } from 'react-router-dom';
 import { User, CreditCard, Calendar, Briefcase, Lock, Users } from 'lucide-react';
+import useDocumentTitle from '../../hooks/useDocumentTitle';
 
 const AddEmployee = () => {
   const [formData, setFormData] = useState({
@@ -14,6 +15,8 @@ const AddEmployee = () => {
     password: '',
     gender: 'male',
   });
+
+  useDocumentTitle("Add New Employee");
 
   const navigate = useNavigate();
 

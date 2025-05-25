@@ -1,16 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import API from '../api/api';
+import API from '../../api/api';
 import * as XLSX from 'xlsx';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
 import { Download, UserCircle, Clock, Building, Mail, Phone, Search } from 'lucide-react';
+import useDocumentTitle from '../../hooks/useDocumentTitle';
 
 function EmployeesPage() {
   const [employees, setEmployees] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const navigate = useNavigate();
+
+  useDocumentTitle("Employees Page");
 
   useEffect(() => {
     const fetchEmployees = async () => {

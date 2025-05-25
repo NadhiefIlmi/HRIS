@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import API from '../api/api';
 import { Link, useNavigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
+import useDocumentTitle from "../hooks/useDocumentTitle";
 
 function ForgotPasswordPage() {
   const [step, setStep] = useState(1);
@@ -13,6 +14,8 @@ function ForgotPasswordPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+   useDocumentTitle("Forgot Password");
 
   const handleRequestOTP = async (e) => {
     e.preventDefault();

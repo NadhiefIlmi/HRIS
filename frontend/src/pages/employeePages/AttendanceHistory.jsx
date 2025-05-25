@@ -1,12 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { CalendarDays, Clock, AlertCircle, CheckCircle2 } from 'lucide-react';
-import API from '../api/api';
+import API from '../../api/api';
+import useDocumentTitle from '../../hooks/useDocumentTitle';
 
 const AttendanceHistory = () => {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
   const token = localStorage.getItem('token');
+
+  useDocumentTitle("Attendance History");
 
   useEffect(() => {
     fetchAttendanceHistory();

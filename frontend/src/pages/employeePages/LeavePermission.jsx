@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, AlertCircle, Check, X, Filter, Trash2, ChevronRight } from 'lucide-react';
-import API from '../api/api';
+import API from '../../api/api';
+import useDocumentTitle from '../../hooks/useDocumentTitle';
 
 export default function LeavePermission() {
   const [leaveRequests, setLeaveRequests] = useState([]);
@@ -12,6 +13,8 @@ export default function LeavePermission() {
   const [activeFilter, setActiveFilter] = useState('all');
   const [isFormOpen, setIsFormOpen] = useState(false);
   const token = localStorage.getItem('token');
+
+  useDocumentTitle("Leaves Permission");
 
   useEffect(() => {
     fetchLeaveRequests();

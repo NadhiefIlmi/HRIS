@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import API from '../api/api';
+import API from '../../api/api';
 import { Camera, Loader2, Save, User, Mail, Phone, Briefcase, Calendar, ChevronRight } from 'lucide-react';
+import useDocumentTitle from '../../hooks/useDocumentTitle';
 
 function ProfileEmployee() {
   const navigate = useNavigate();
@@ -25,7 +26,7 @@ function ProfileEmployee() {
   const [imagePreview, setImagePreview] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
 
-
+  useDocumentTitle("My Profile");
 
    // Fungsi untuk menavigasi ke halaman Change Password
    const handleChangePasswordClick = () => {

@@ -1,27 +1,46 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import API from '../api/api';
+import API from '../../api/api';
 import { FaBuilding, FaIdCard, FaEnvelope, FaPhone, FaCalendarAlt, FaUser, FaTrash, FaUpload } from 'react-icons/fa';
+import useDocumentTitle from '../../hooks/useDocumentTitle';
 
-function UserDetail() {
+function EmployeeDetail() {
     const { id } = useParams();
     const [employee, setEmployee] = useState(null);
     const [loading, setLoading] = useState(true);
     const [isUploading, setIsUploading] = useState(false);
     const [file, setFile] = useState(null);
+    const [isDragOver, setIsDragOver] = useState(false);
     const [uploadMessage, setUploadMessage] = useState('');
     const navigate = useNavigate();
 
+    useDocumentTitle("Employee Detail");
+
     const handleFileChange = (e) => {
-        setFile(e.target.files[0]);
+        const selected = e.target.files[0];
+        if (selected && selected.type === 'application/pdf') {
+            setFile(selected);
+            setUploadMessage('');
+        } else {
+            setUploadMessage('Only PDF files are allowed.');
+        }
+    };
+
+    const handleDrop = (e) => {
+        e.preventDefault();
+        setIsDragOver(false);
+
+        const droppedFile = e.dataTransfer.files[0];
+        if (droppedFile && droppedFile.type === 'application/pdf') {
+            setFile(droppedFile);
+            setUploadMessage('');
+        } else {
+            setUploadMessage('Only PDF files are allowed.');
+        }
     };
 
     const handleUpload = async () => {
         if (!file) return;
-        if (file.type !== 'application/pdf') {
-            setUploadMessage('Please upload a PDF file.');
-            return;
-        }
 
         const formData = new FormData();
         formData.append('salarySlip', file);
@@ -32,11 +51,12 @@ function UserDetail() {
             const response = await API.post(`/api/hr/upload-salary-slip/${id}`, formData, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'multipart/form-data'
+                    'Content-Type': 'multipart/form-data',
                 },
             });
 
             setUploadMessage(response.data.message);
+            setFile(null);
         } catch (error) {
             console.error('Error uploading salary slip:', error);
             setUploadMessage('Failed to upload salary slip');
@@ -67,6 +87,31 @@ function UserDetail() {
         };
 
         fetchEmployee();
+    }, [id]);
+
+     useEffect(() => {
+        const fetchExistingFile = async () => {
+            try {
+                const token = localStorage.getItem('token');
+                const res = await API.get(`/api/hr/salary-slip/${id}`, {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                });
+
+                if (res.data.salarySlip) {
+                    setFile({
+                        name: res.data.salarySlip.split('/').pop(),
+                        url: res.data.salarySlip
+                    });
+                }
+                console.log(file);
+            } catch (err) {
+                console.error('Failed to fetch salary slip:', err);
+            }
+        };
+
+        fetchExistingFile();
     }, [id]);
 
     const handleDelete = async () => {
@@ -354,72 +399,84 @@ function UserDetail() {
             
             {/* Upload Salary Slip */}
             <div className="mb-6 bg-gray-50 p-6 rounded-lg shadow-md">
-                <h3 className="text-lg font-semibold text-[#662b1f] mb-4">Upload Salary Slip</h3>
-                <div className="flex flex-col items-center w-full">
-                    {!file ? (
-                        <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-[#662b1f] transition">
-                            <input
-                                type="file"
-                                onChange={handleFileChange}
-                                accept=".pdf"
-                                className="hidden"
-                            />
-                            <div className="flex flex-col items-center justify-center text-gray-500">
-                                <FaUpload className="text-4xl mb-2" />
-                                <span className="text-sm">Drag & drop your PDF here</span>
-                                <span className="text-sm">or click to select a file</span>
-                            </div>
-                        </label>
-                    ) : (
-                        <div className="flex flex-col items-center justify-center w-full h-auto border border-gray-300 rounded-lg bg-white p-4 text-center">
-                            <p className="text-sm text-gray-700 mb-2">
-                                Selected file: <span className="font-medium">{file.name}</span>
-                            </p>
-                            <div className="flex gap-4">
-                                <label className="text-sm text-blue-600 cursor-pointer hover:underline">
-                                    Change file
-                                    <input
-                                        type="file"
-                                        onChange={handleFileChange}
-                                        accept=".pdf"
-                                        className="hidden"
-                                    />
-                                </label>
-                                <button
-                                    type="button"
-                                    onClick={() => setFile(null)}
-                                    className="text-sm text-red-600 hover:underline"
-                                >
-                                    Remove file
-                                </button>
-                            </div>
+            <h3 className="text-lg font-semibold text-[#662b1f] mb-4">Upload Salary Slip</h3>
+            <div className="flex flex-col items-center w-full">
+                {!file ? (
+                    <label
+                        onDragOver={(e) => {
+                            e.preventDefault();
+                            setIsDragOver(true);
+                        }}
+                        onDragLeave={() => setIsDragOver(false)}
+                        onDrop={handleDrop}
+                        className={`flex flex-col items-center justify-center w-full h-32 border-2 ${
+                            isDragOver ? 'border-[#662b1f] bg-gray-100' : 'border-gray-300'
+                        } border-dashed rounded-lg cursor-pointer transition`}
+                    >
+                        <input
+                            type="file"
+                            onChange={handleFileChange}
+                            accept=".pdf"
+                            className="hidden"
+                        />
+                        <div className="flex flex-col items-center justify-center text-gray-500">
+                            <FaUpload className="text-4xl mb-2" />
+                            <span className="text-sm">Drag & drop your PDF here</span>
+                            <span className="text-sm">or click to select a file</span>
                         </div>
-                    )}
-
-                    <button
-                        onClick={handleUpload}
-                        disabled={isUploading || !file}
-                        className="mt-4 w-full px-4 py-2 bg-[#662b1f] text-white rounded hover:bg-[#8a3b2a] disabled:opacity-50 flex items-center justify-center gap-2 transition"
-                    >
-                        {isUploading ? (
-                            <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-white"></div>
-                        ) : (
-                            <FaUpload />
-                        )}
-                        Upload
-                    </button>
-                </div>
-
-                {uploadMessage && (
-                    <p
-                        className={`mt-3 text-sm ${uploadMessage.includes('Failed') ? 'text-red-500' : 'text-green-500'} font-medium`}
-                    >
-                        {uploadMessage}
-                    </p>
+                    </label>
+                ) : (
+                    <div className="flex flex-col items-center justify-center w-full border border-gray-300 rounded-lg bg-white p-4 text-center">
+                        <p className="text-sm text-gray-700 mb-2">
+                            Selected file: <span className="font-medium">{file.name}</span>
+                        </p>
+                        <div className="flex gap-4">
+                            <label className="text-sm text-blue-600 cursor-pointer hover:underline">
+                                Change file
+                                <input
+                                    type="file"
+                                    onChange={handleFileChange}
+                                    accept=".pdf"
+                                    className="hidden"
+                                />
+                            </label>
+                            <button
+                                type="button"
+                                onClick={() => setFile(null)}
+                                className="text-sm text-red-600 hover:underline"
+                            >
+                                Remove file
+                            </button>
+                        </div>
+                    </div>
                 )}
+
+                <button
+                    onClick={handleUpload}
+                    disabled={isUploading || !file}
+                    className="mt-4 w-full px-4 py-2 bg-[#662b1f] text-white rounded hover:bg-[#8a3b2a] disabled:opacity-50 flex items-center justify-center gap-2 transition"
+                >
+                    {isUploading ? (
+                        <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-white"></div>
+                    ) : (
+                        <FaUpload />
+                    )}
+                    Upload
+                </button>
             </div>
+
+            {uploadMessage && (
+                <p
+                    className={`mt-3 text-sm font-medium ${
+                        uploadMessage.includes('Failed') ? 'text-red-500' : 'text-green-500'
+                    }`}
+                >
+                    {uploadMessage}
+                </p>
+            )}
+        </div>
         </div>
     );
 }
 
-export default UserDetail;
+export default EmployeeDetail;

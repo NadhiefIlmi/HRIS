@@ -12,7 +12,7 @@ import {
   Shield,
 } from 'lucide-react';
 
-function Password() {
+function ChangePasswordHR() {
   const navigate = useNavigate();
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -290,4 +290,4 @@ function Password() {
   );
 }
 
-export default Password;
+export default ChangePasswordHR;

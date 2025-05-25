@@ -10,10 +10,11 @@ import {
   Sparkles,
   TrendingUp
 } from 'lucide-react';
-import API from '../api/api';
+import API from '../../api/api';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import useDocumentTitle from '../../hooks/useDocumentTitle';
 
-function HRDashboard() {
+function HRHome() {
   const [totalEmployees, setTotalEmployees] = useState(null);
   const [pendingRequests, setPendingRequests] = useState(null);
   const [employeesError, setEmployeesError] = useState(false);
@@ -31,6 +32,7 @@ function HRDashboard() {
       username: ''
     });
 
+  useDocumentTitle("HR Home");
 
   useEffect(() => {
     const fetchGenderData = async () => {
@@ -391,4 +393,4 @@ function CalendarStatCard({ currentMonth, currentYear, daysInMonth, link }) {
   );
 }
 
-export default HRDashboard;
+export default HRHome;
