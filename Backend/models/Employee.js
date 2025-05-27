@@ -1,9 +1,14 @@
 const mongoose = require('mongoose');
 
 const EducationSchema = new mongoose.Schema({
-    degree: String,
+    last_education: {
+        type: String,
+        enum: ['SMK SEDERAJAT', 'SMA SEDERAJAT', 'S1'],
+        required: true
+    },
     institution: String,
-    year: Number
+    majority: String,
+    year_of_graduation: Number
 }, { _id: true });
 
 const TrainingSchema = new mongoose.Schema({
@@ -15,17 +20,29 @@ const TrainingSchema = new mongoose.Schema({
 const EmployeeSchema = new mongoose.Schema({
     username: String,
     nik: String,
-    email: String,
+    employee_name: String,
+    joint_date: Date,
+    contract_end_date: Date,
     dob: Date,
-    department: String,
-    phone_nmb: String,
-    photo: { type: String, default: '' },
+    pob: String,
+    ktp_number: String,
+    kk_number: String,
+    npwp_number: String,
     gender: {
         type: String,
         enum: ['male', 'female'],
         required: true
     }, 
+    bpjs_kesehatan_no: String,
+    bpjs_clinic: String,
+    bpjs_tk_no: String,
+    bpjs_jp_no: String,
+    department: String,
+    phone_nmb: String,
+    email: String,
+    photo: { type: String, default: '' },
     educationHistory: [EducationSchema],
+    ktp_address: String,
     trainingHistory: [TrainingSchema],
     salarySlip: { type: String, default: '' },
     password: String,

@@ -11,23 +11,128 @@ const LeaveRequest = require('../models/LeaveRequest');
 
 
 exports.registerEmployee = async (req, res) => {
-    const { username, nik, dob, department, password, gender } = req.body;
-    if (!username || !nik || !dob || !department || !password || !gender) {
-        return res.status(400).json({ message: 'All fields are required' });
+    const {
+        username, nik, employee_name, joint_date, contract_end_date, dob, pob,
+        ktp_number, kk_number, npwp_number, gender, bpjs_kesehatan_no,
+        bpjs_clinic, bpjs_tk_no, bpjs_jp_no, department, phone_nmb, email,
+        photo, ktp_address, educationHistory, trainingHistory,
+        salarySlip, password, attendanceRecords, leaveInfo, leaveRecords
+    } = req.body;
+
+    // Validasi minimal field yang wajib diisi
+    if (!username || !nik || !dob || !password || !gender) {
+        return res.status(400).json({ message: 'Required fields are missing' });
     }
 
     try {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
+
         const newEmployee = new Employee({
-            username, nik, dob, department, gender, password: hashedPassword
+            username,
+            nik,
+            employee_name,
+            joint_date,
+            contract_end_date,
+            dob,
+            pob,
+            ktp_number,
+            kk_number,
+            npwp_number,
+            gender,
+            bpjs_kesehatan_no,
+            bpjs_clinic,
+            bpjs_tk_no,
+            bpjs_jp_no,
+            department,
+            phone_nmb,
+            email,
+            photo,
+            ktp_address,
+            educationHistory,
+            trainingHistory,
+            salarySlip,
+            password: hashedPassword,
+            attendanceRecords,
+            leaveInfo,
+            leaveRecords
         });
+
         await newEmployee.save();
         res.json({ message: 'Employee registered successfully' });
     } catch (err) {
-        console.error("Error in registerEmployee:", err); // Log error
-        res.status(500).json({ message: 'Error registering Employee' });
+        console.error("Error in registerEmployee:", err);
+        res.status(500).json({ message: 'Error registering employee' });
     }
+};
+
+exports.bulkRegisterEmployees = async (req, res) => {
+  const employees = req.body;
+
+  if (!Array.isArray(employees) || employees.length === 0) {
+    return res.status(400).json({ message: 'Invalid or empty employee list' });
+  }
+
+  try {
+    const newEmployees = await Promise.all(
+      employees.map(async (emp) => {
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(emp.password || 'DefaultPass123', salt); // Bisa diubah sesuai kebutuhan
+
+        return {
+          username: emp.username || emp.username_final,
+          nik: emp.nik || emp.NIK,
+          employee_name: emp.employee_name || emp['Employee Name'],
+          joint_date: emp.joint_date || emp['Joint Date'],
+          contract_end_date: emp.contract_end_date || emp['Contract End date'],
+          dob: emp.dob || emp['Date of Birth'],
+          pob: emp.pob || emp['Place of Birth'],
+          ktp_number: emp.ktp_number || emp['KTP Number'],
+          kk_number: emp.kk_number || emp['KK No'],
+          npwp_number: emp.npwp_number || emp['NPWP Number'],
+          gender:
+            (emp.gender || emp['Gender'] || '').toLowerCase() === 'l'
+              ? 'male'
+              : (emp.gender || emp['Gender'] || '').toLowerCase() === 'p'
+              ? 'female'
+              : emp.gender || '',
+          bpjs_kesehatan_no: emp.bpjs_kesehatan_no || emp['BPJS Kesehatan No'],
+          bpjs_clinic: emp.bpjs_clinic || emp['BPJS Clinic'],
+          bpjs_tk_no: emp.bpjs_tk_no || emp['BPJS TK No'],
+          bpjs_jp_no: emp.bpjs_jp_no || emp['BPJS JP No'],
+          department: emp.department || '',
+          phone_nmb: emp.phone_nmb || emp['No HP'],
+          email: emp.email || emp['Email'],
+          photo: emp.photo || '',
+          ktp_address: emp.ktp_address || emp['KTP Address'],
+          educationHistory: emp.educationHistory || [
+            {
+              last_education: emp['Last Education'],
+              institution: emp['School / Univercity'],
+              majority: emp['Majority'],
+              year_of_graduation: emp['Year of Graduation'],
+            },
+          ],
+          trainingHistory: emp.trainingHistory || [],
+          salarySlip: emp.salarySlip || '',
+          password: hashedPassword,
+          attendanceRecords: [],
+          leaveInfo: [],
+          leaveRecords: [],
+        };
+      })
+    );
+
+    await Employee.insertMany(newEmployees);
+
+    res.status(201).json({
+      message: 'Employees registered successfully',
+      insertedCount: newEmployees.length,
+    });
+  } catch (err) {
+    console.error('Error in bulkRegisterEmployees:', err);
+    res.status(500).json({ message: 'Failed to register employees', error: err.message });
+  }
 };
 
 exports.loginEmployee = async (req, res) => {

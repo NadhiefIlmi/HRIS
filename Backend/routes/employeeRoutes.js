@@ -6,6 +6,7 @@ const { checkBlacklistedToken, blacklistedTokens } = require('../middleware/chec
 const { uploadProfilePhoto } = require('../utils/multerConfig');
 
 router.post('/register', employeeController.registerEmployee);
+router.post('/batch-register', employeeController.bulkRegisterEmployees);
 router.post('/login', employeeController.loginEmployee);
 router.post('/logout', authenticateEmployee, employeeController.logoutEmployee);
 router.get('/me', authenticateEmployee, checkBlacklistedToken, employeeController.personalDataEmployee);

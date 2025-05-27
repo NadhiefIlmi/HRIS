@@ -196,6 +196,7 @@ function HRLayout({ children }) {
           </div>
 
           <NavLink to="/leave-requests" icon={Calendar} label="Leave Requests" />
+          <NavLink to="http://103.134.154.55:4000/" icon={Calendar} label="Home Page" />
         </nav>
 
         {/* Logout Button */}

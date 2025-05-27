@@ -191,6 +191,7 @@ function EmployeeDetail() {
 
     // Format DOB without time
     const dob = formatDate(employee.dob, false);
+    const joint_date = formatDate(employee.joint_date, false);
 
     return (
         <div className="p-6 max-w-4xl mx-auto bg-white rounded-xl shadow-xl my-8">
@@ -240,7 +241,7 @@ function EmployeeDetail() {
                         <FaEnvelope className="text-[#662b1f] mr-3" />
                         <div>
                             <p className="text-sm text-gray-500">Email</p>
-                            <p className="font-medium">{employee.email}</p>
+                            <p className="font-medium">{employee.email || '—'}</p>
                         </div>
                     </div>
 
@@ -266,8 +267,8 @@ function EmployeeDetail() {
                     <div className="flex items-center p-3 bg-gray-50 rounded-lg shadow-sm hover:shadow-md transition">
                         <FaBuilding className="text-[#662b1f] mr-3" />
                         <div>
-                            <p className="text-sm text-gray-500">Department</p>
-                            <p className="font-medium">{employee.department}</p>
+                            <p className="text-sm text-gray-500">Joint Date</p>
+                            <p className="font-medium">{joint_date}</p>
                         </div>
                     </div>
 
@@ -353,15 +354,17 @@ function EmployeeDetail() {
                                 <tr>
                                     <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Degree</th>
                                     <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Institution</th>
+                                    <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Majority</th>
                                     <th className="py-3 px-6 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Year</th>
                                 </tr>
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
                                 {employee.educationHistory.map((edu, index) => (
                                     <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                                        <td className="py-4 px-6 text-sm font-medium text-gray-900">{edu.degree || '—'}</td>
+                                        <td className="py-4 px-6 text-sm font-medium text-gray-900">{edu.last_education || '—'}</td>
                                         <td className="py-4 px-6 text-sm text-gray-900">{edu.institution || '—'}</td>
-                                        <td className="py-4 px-6 text-sm text-gray-900">{edu.year || '—'}</td>
+                                        <td className="py-4 px-6 text-sm text-gray-900">{edu.majority || '—'}</td>
+                                        <td className="py-4 px-6 text-sm text-gray-900">{edu.year_of_graduation || '—'}</td>
                                     </tr>
                                 ))}
                             </tbody>
