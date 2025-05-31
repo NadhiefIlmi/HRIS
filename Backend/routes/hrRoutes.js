@@ -3,7 +3,7 @@ const router = express.Router();
 const hrController = require('../controllers/HRController');
 const authenticateHR = require('../middleware/authenticateHR');
 const { checkBlacklistedToken, blacklistedTokens } = require('../middleware/checkBlacklistedToken');
-const { uploadProfilePhoto, uploadSalarySlip } = require('../utils/multerConfig');
+const { uploadProfilePhoto, uploadSalarySlip, uploadSalarySlipZip } = require('../utils/multerConfig');
 const { changePassword } = require('../controllers/HRController');
 
 
@@ -24,5 +24,10 @@ router.get('/count-employees', authenticateHR, checkBlacklistedToken, hrControll
 router.get('/count-pending-leaves', authenticateHR, checkBlacklistedToken, hrController.countPendingLeaveRequests);
 router.post('/change-password', authenticateHR, changePassword);
 router.get('/gender-summary', authenticateHR, checkBlacklistedToken, hrController.getGenderSummary);
+router.post(
+  '/upload-zip-slip',
+  uploadSalarySlipZip.single('zipfile'),
+  hrController.uploadSalarySlipZip
+);
 
 module.exports = router;

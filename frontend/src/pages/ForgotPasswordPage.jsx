@@ -24,7 +24,7 @@ function ForgotPasswordPage() {
     setLoading(true);
 
     try {
-      const res = await API.post('/api/request-reset-password', { username, email });
+      const res = await API.post('/request-reset-password', { username, email });
       setMessage(res.data.message);
       setStep(2);
     } catch (err) {
@@ -41,7 +41,7 @@ function ForgotPasswordPage() {
     setLoading(true);
 
     try {
-      const res = await API.post('/api/reset-password', { username, otp, newPassword });
+      const res = await API.post('/reset-password', { username, otp, newPassword });
       setMessage(res.data.message);
       setTimeout(() => {
         navigate('/');

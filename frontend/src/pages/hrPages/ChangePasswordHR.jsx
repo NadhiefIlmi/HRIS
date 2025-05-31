@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import API from '../../api/api';
 import {
   Loader2,
   Save,
@@ -20,33 +21,56 @@ function ChangePasswordHR() {
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [loading, setLoading] = useState(false);
-
+  const token = localStorage.getItem('token');
   const [showOldPassword, setShowOldPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const handleSubmit = () => {
-    if (newPassword === '') {
-      setError('Please enter a new password');
-      return;
+ const handleSubmit = async (e) => {
+  e.preventDefault();
+  setError('');
+  setSuccessMessage('');
+  setLoading(true);
+
+  if (newPassword === '') {
+    setError('Please enter a new password');
+    setLoading(false);
+    return;
+  }
+
+  if (newPassword !== confirmPassword) {
+    setError('New password and confirmation password do not match');
+    setLoading(false);
+    return;
+  }
+
+  try {
+    const response = await API.post(
+      "/api/hr/change-password",
+      { oldPassword, newPassword },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    const data = response.data;
+
+    if (response.status !== 200) {
+      throw new Error(data.message || "Failed to update password");
     }
 
-    if (newPassword !== confirmPassword) {
-      setError('New password and confirmation password do not match');
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-
-    setTimeout(() => {
-      setSuccessMessage('Password updated successfully!');
-      setOldPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-      setLoading(false);
-    }, 1500);
-  };
+    setSuccessMessage("Password updated successfully!");
+    setOldPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
+  } catch (err) {
+    setError(err.message);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const getPasswordStrength = (password) => {
     if (!password) return { level: 0, text: '' };

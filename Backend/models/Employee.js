@@ -4,7 +4,6 @@ const EducationSchema = new mongoose.Schema({
     last_education: {
         type: String,
         enum: ['SMK SEDERAJAT', 'SMA SEDERAJAT', 'S1'],
-        required: true
     },
     institution: String,
     majority: String,

@@ -1,37 +1,64 @@
 import React, { useState } from "react";
+import API from '../../api/api';
 import { Loader2, Save, ArrowLeft, Eye, EyeOff, Lock } from "lucide-react";
 
 export default function ChangePasswordEmployee() {
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
-  const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [showOldPassword, setShowOldPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const token = localStorage.getItem('token');
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
+  const handleSubmit = async (e) => {
+  e.preventDefault();
+  setError('');
+  setSuccessMessage('');
+  setLoading(true);
 
-    if (newPassword !== confirmNewPassword) {
-      setError("New password and confirmation do not match");
-      setLoading(false);
-      return;
+  if (newPassword === '') {
+    setError('Please enter a new password');
+    setLoading(false);
+    return;
+  }
+
+  if (newPassword !== confirmPassword) {
+    setError('New password and confirmation password do not match');
+    setLoading(false);
+    return;
+  }
+
+  try {
+    const response = await API.put(
+      "/api/employee/change-password",
+      { oldPassword, newPassword },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    const data = response.data;
+
+    if (response.status !== 200) {
+      throw new Error(data.message || "Failed to update password");
     }
 
-    // Simulate API call
-    setTimeout(() => {
-      setSuccessMessage("Password updated successfully!");
-      setOldPassword("");
-      setNewPassword("");
-      setConfirmNewPassword("");
-      setLoading(false);
-    }, 1500);
-  };
+    setSuccessMessage("Password updated successfully!");
+    setOldPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
+  } catch (err) {
+    setError(err.message);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const togglePasswordVisibility = (field) => {
     if (field === "old") setShowOldPassword(!showOldPassword);
@@ -116,8 +143,8 @@ export default function ChangePasswordEmployee() {
                 <div className="relative">
                   <input
                     type={showConfirmPassword ? "text" : "password"}
-                    value={confirmNewPassword}
-                    onChange={(e) => setConfirmNewPassword(e.target.value)}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
                     className="w-full px-5 py-4 rounded-xl border border-gray-300 pr-12 text-base"
                     placeholder="Confirm new password"
                     required

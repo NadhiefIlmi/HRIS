@@ -1,3 +1,4 @@
+const unzipper = require('unzipper');
 const HR = require('../models/HR');
 const Employee = require('../models/Employee');
 const bcrypt = require('bcryptjs');
@@ -7,6 +8,7 @@ const fs = require('fs');
 const mongoose = require('mongoose');
 const { blacklistedTokens } = require('../middleware/checkBlacklistedToken');
 const LeaveRequest = require('../models/LeaveRequest');
+
 
 exports.registerHR = async (req, res) => {
     const { username, password } = req.body;
@@ -58,7 +60,7 @@ exports.personalDataHR = async (req, res) => {
             return res.status(400).json({ message: 'Invalid HR ID' });
         }
 
-        const hr = await HR.findById(hrId, {password:0}); // Jangan tampilkan password
+        const hr = await HR.findById(hrId); // Jangan tampilkan password
 
         if (!hr) {
             console.log("[Endpoint] HR not found:", hrId);
@@ -266,6 +268,7 @@ exports.changePassword = async (req, res) => {
   
     try {
       const hr = await HR.findById(hrId);
+
       if (!hr) {
         console.log("HR not found with ID:", hrId);
         return res.status(404).json({ message: 'HR tidak ditemukan' });
@@ -296,5 +299,82 @@ exports.getGenderSummary = async (req, res) => {
     } catch (error) {
         console.error('Error fetching gender summary:', error);
         res.status(500).json({ message: 'Internal Server Error' });
+    }
+};
+
+exports.uploadSalarySlipZip = async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ message: 'No ZIP file uploaded' });
+        }
+
+        const zipPath = req.file.path;
+        const extractDir = path.join(__dirname, '../uploads/salary-slips/tmp');
+
+        if (!fs.existsSync(extractDir)) {
+            fs.mkdirSync(extractDir, { recursive: true });
+        }
+
+        // Ekstrak file ZIP ke folder sementara
+        await fs.createReadStream(zipPath)
+            .pipe(unzipper.Extract({ path: extractDir }))
+            .promise();
+
+        const files = fs.readdirSync(extractDir);
+        const employees = await Employee.find();
+
+        let matched = 0;
+        let unmatchedFiles = [];
+
+        // Fungsi normalisasi
+        const normalize = str => str.toLowerCase().replace(/\s/g, '');
+
+        for (const file of files) {
+            const filePath = path.join(extractDir, file);
+
+            // Ambil nama dari file (tanpa prefix dan ekstensi)
+            const fileNameNormalized = normalize(
+                file.replace(/^salary_/, '').replace(/\.pdf$/, '')
+            );
+
+            // Cari employee yang cocok
+            const matchedEmployee = employees.find(emp =>
+                normalize(emp.employee_name) === fileNameNormalized
+            );
+
+            if (matchedEmployee) {
+                // Format tanggal untuk nama file
+                const now = new Date();
+                const pad = n => n.toString().padStart(2, '0');
+                const formattedDate = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+                const finalFilename = `${formattedDate}_${file}`;
+                const finalPath = path.join(__dirname, '../utils/uploads/salary-slips', finalFilename);
+
+                // Pindahkan file dan update path di database
+                fs.renameSync(filePath, finalPath);
+
+                matchedEmployee.salarySlip = `/uploads/salary-slips/${finalFilename}`;
+                await matchedEmployee.save();
+
+                matched++;
+            } else {
+                unmatchedFiles.push(file);
+                fs.unlinkSync(filePath); // Hapus file tak dikenali
+            }
+        }
+
+        // Bersihkan file ZIP dan folder sementara
+        fs.unlinkSync(zipPath);
+        fs.rmdirSync(extractDir, { recursive: true });
+
+        res.json({
+            message: 'ZIP processed',
+            matched,
+            unmatchedFiles
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Internal Server Error', error });
     }
 };

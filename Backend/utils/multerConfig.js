@@ -45,6 +45,29 @@ const fileFilterForSalarySlip = (req, file, cb) => {
     }
 };
 
+// Filter hanya untuk file ZIP
+const fileFilterForZip = (req, file, cb) => {
+    if (file.mimetype === 'application/zip' || file.mimetype === 'application/x-zip-compressed') {
+        cb(null, true);
+    } else {
+        cb(new Error('Invalid file type. Only ZIP files are allowed.'));
+    }
+};
+
+// Storage untuk file ZIP sementara
+const getStorageForZip = () => multer.diskStorage({
+    destination: (req, file, cb) => {
+        const dir = path.join(__dirname, 'uploads/zips');
+        if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir, { recursive: true });
+        }
+        cb(null, dir);
+    },
+    filename: (req, file, cb) => {
+        cb(null, Date.now() + '_' + file.originalname);
+    }
+});
+
 // Filter untuk file gambar (profil foto)
 const fileFilterForProfilePhoto = (req, file, cb) => {
     const allowedTypes = ['image/jpeg', 'image/png'];
@@ -60,5 +83,7 @@ module.exports = {
     uploadSalarySlip: multer({ storage: getStorageForSalarySlip(), fileFilter: fileFilterForSalarySlip }),
 
     // Middleware untuk upload profil foto (gambar)
-    uploadProfilePhoto: multer({ storage: getStorageForProfilePhoto(), fileFilter: fileFilterForProfilePhoto })
+    uploadProfilePhoto: multer({ storage: getStorageForProfilePhoto(), fileFilter: fileFilterForProfilePhoto }),
+
+    uploadSalarySlipZip: multer({ storage: getStorageForSalarySlip(), fileFilter: fileFilterForZip })
 };
