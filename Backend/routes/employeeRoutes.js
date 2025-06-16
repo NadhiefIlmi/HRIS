@@ -5,7 +5,7 @@ const authenticateEmployee = require('../middleware/authenticateEmployee');
 const { checkBlacklistedToken, blacklistedTokens } = require('../middleware/checkBlacklistedToken');
 const { uploadProfilePhoto } = require('../utils/multerConfig');
 
-router.post('/register', employeeController.registerEmployee);
+router.post('/register', uploadProfilePhoto.single('photo'), employeeController.registerEmployee);
 router.post('/batch-register', employeeController.bulkRegisterEmployees);
 router.post('/login', employeeController.loginEmployee);
 router.post('/logout', authenticateEmployee, employeeController.logoutEmployee);
@@ -26,5 +26,12 @@ router.put('/change-password', authenticateEmployee,  employeeController.changeP
 router.get('/attendance/today', authenticateEmployee, employeeController.getTodayAttendance);
 
 router.get('/attendance/history', authenticateEmployee, employeeController.getAttendanceHistory);
+
+// Add these new routes before module.exports
+router.get('/announcements/date/:date', authenticateEmployee, employeeController.getAnnouncementsByDate);
+router.get('/announcements/upcoming', authenticateEmployee, employeeController.getUpcomingAnnouncements);
+
+// New route to get leave information of logged-in employee
+router.get('/leave-info', authenticateEmployee, employeeController.getLeaveInfo);
 
 module.exports = router;

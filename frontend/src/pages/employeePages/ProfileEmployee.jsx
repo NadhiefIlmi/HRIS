@@ -14,6 +14,11 @@ function ProfileEmployee() {
   const [successMessage, setSuccessMessage] = useState('');
   const fileInputRef = useRef(null);
 
+  // Pagination state for Education and Training
+  const [educationPage, setEducationPage] = useState(1);
+  const [trainingPage, setTrainingPage] = useState(1);
+  const pageSize = 3;
+
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -21,6 +26,8 @@ function ProfileEmployee() {
     gender: '',
     department: '',
     dob: '',
+    educationHistory: [],
+    trainingHistory: [],
   });
 
   const [imagePreview, setImagePreview] = useState(null);
@@ -51,6 +58,8 @@ function ProfileEmployee() {
         gender: res.data.gender || '',
         department: res.data.department || '',
         dob: res.data.dob?.slice(0, 10) || '',
+        educationHistory: res.data.educationHistory || [],
+        trainingHistory: res.data.trainingHistory || [],
       });
       setLoading(false);
     } catch (err) {
@@ -67,6 +76,56 @@ function ProfileEmployee() {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  // Handlers for Education History
+  const handleEducationChange = (index, e) => {
+    const { name, value } = e.target;
+    const newEducation = [...formData.educationHistory];
+    newEducation[index][name] = value;
+    setFormData({ ...formData, educationHistory: newEducation });
+  };
+
+  const addEducation = () => {
+    setFormData(prev => ({
+      ...prev,
+      educationHistory: [
+        ...prev.educationHistory,
+        { last_education: '', institution: '', majority: '', year_of_graduation: '' },
+      ],
+    }));
+  };
+
+  const removeEducation = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      educationHistory: prev.educationHistory.filter((_, i) => i !== index),
+    }));
+  };
+
+  // Handlers for Training History
+  const handleTrainingChange = (index, e) => {
+    const { name, value } = e.target;
+    const newTraining = [...formData.trainingHistory];
+    newTraining[index][name] = value;
+    setFormData({ ...formData, trainingHistory: newTraining });
+  };
+
+  const addTraining = () => {
+    setFormData(prev => ({
+      ...prev,
+      trainingHistory: [
+        ...prev.trainingHistory,
+        { title: '', provider: '', start_date: '', end_date: '' },
+      ],
+    }));
+  };
+
+  const removeTraining = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      trainingHistory: prev.trainingHistory.filter((_, i) => i !== index),
+    }));
   };
 
   const handleFileChange = (e) => {
@@ -88,14 +147,27 @@ function ProfileEmployee() {
 
     try {
       const formDataToSend = new FormData();
-      Object.entries(formData).forEach(([key, val]) => formDataToSend.append(key, val));
+
+      // Prepare formData with JSON string for arrays
+      Object.entries({
+        ...formData,
+        educationHistory: formData.educationHistory,
+        trainingHistory: formData.trainingHistory,
+      }).forEach(([key, val]) => {
+        if (key === 'educationHistory' || key === 'trainingHistory') {
+          formDataToSend.append(key, JSON.stringify(val));
+        } else {
+          formDataToSend.append(key, val);
+        }
+      });
+
       if (selectedFile) formDataToSend.append('file', selectedFile);
 
       const res = await API.put('/api/employee/edit', formDataToSend, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
-          'Content-Type': 'multipart/form-data'
-        }
+          'Content-Type': 'multipart/form-data',
+        },
       });
 
       setProfile(res.data.employee);
@@ -152,123 +224,12 @@ function ProfileEmployee() {
           )}
 
           {isEditing ? (
-            <div className="p-8">
-              <div className="flex justify-between items-center mb-8">
-                <h1 className="text-3xl font-bold text-gray-800">Edit Profile</h1>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsEditing(false);
-                    setImagePreview(null);
-                    setSelectedFile(null);
-                    setFormData({
-                      username: profile.username || '',
-                      email: profile.email || '',
-                      phone_nmb: profile.phone_nmb || '',
-                      gender: profile.gender || '',
-                      department: profile.department || '',
-                      dob: profile.dob?.slice(0, 10) || '',
-                    });
-                  }}
-                  className="text-[#662b1f] hover:text-[#4e2118] font-medium"
-                >
-                  Cancel
-                </button>
-              </div>
-              
-              <form onSubmit={handleSubmit} className="space-y-8">
-                <div className="flex flex-col sm:flex-row items-center gap-8 mb-10">
-                  <div className="relative group">
-                    <div className="w-40 h-40 rounded-full overflow-hidden bg-gray-200 ring-4 ring-white shadow-lg">
-                      {imagePreview || profile.photo ? (
-                        <img
-                          src={imagePreview || `${API.defaults.baseURL}${profile.photo}`}
-                          alt="Profile"
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gray-100">
-                          <User size={64} className="text-gray-400" />
-                        </div>
-                      )}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={triggerFileInput}
-                      className="absolute bottom-0 right-0 bg-[#662b1f] text-white p-2 rounded-full shadow-lg hover:bg-[#4e2118] transition transform hover:scale-110"
-                    >
-                      <Camera size={20} />
-                    </button>
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      onChange={handleFileChange}
-                      className="hidden"
-                      accept="image/*"
-                    />
-                  </div>
-                  
-                  <div>
-                    <h2 className="text-2xl font-bold text-gray-800">{profile.username}</h2>
-                    <p className="text-gray-500 capitalize">{profile.department}</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <InputField label="Username" name="username" value={formData.username} onChange={handleChange} icon={<User size={18} className="text-gray-500" />} />
-                  <InputField label="Email" name="email" value={formData.email} onChange={handleChange} type="email" icon={<Mail size={18} className="text-gray-500" />} />
-                  <InputField label="Phone Number" name="phone_nmb" value={formData.phone_nmb} onChange={handleChange} icon={<Phone size={18} className="text-gray-500" />} />
-                  <InputField label="Department" name="department" value={formData.department} onChange={handleChange} icon={<Briefcase size={18} className="text-gray-500" />} />
-                  <InputField label="Date of Birth" name="dob" value={formData.dob} onChange={handleChange} type="date" icon={<Calendar size={18} className="text-gray-500" />} />
-
-                  <div>
-                    <label className="block text-gray-700 font-medium mb-2">Gender</label>
-                    <div className="relative">
-                      <select
-                        name="gender"
-                        value={formData.gender}
-                        onChange={handleChange}
-                        className="appearance-none w-full pl-12 pr-10 py-3 rounded-xl border border-gray-300 bg-white focus:outline-none focus:ring-2 focus:ring-[#662b1f] focus:border-[#662b1f] shadow-sm"
-                      >
-                        <option value="">Select Gender</option>
-                        <option value="male">Male</option>
-                        <option value="female">Female</option>
-                      </select>
-                      <div className="absolute inset-y-0 left-0 flex items-center pl-4">
-                        <User size={18} className="text-gray-500" />
-                      </div>
-                      <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
-                        <ChevronRight size={18} className="text-gray-500" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="pt-6 border-t border-gray-200 mt-10">
-                  <button
-                    type="submit"
-                    className="w-full py-4 bg-gradient-to-r from-[#662b1f] to-[#8c3b2c] text-white rounded-xl hover:from-[#4e2118] hover:to-[#662b1f] transition shadow-lg flex items-center justify-center gap-2 font-medium"
-                    disabled={saving}
-                  >
-                    {saving ? (
-                      <>
-                        <Loader2 className="h-5 w-5 animate-spin" />
-                        Saving Changes...
-                      </>
-                    ) : (
-                      <>
-                        <Save className="h-5 w-5" />
-                        Save Changes
-                      </>
-                    )}
-                  </button>
-                </div>
-              </form>
-            </div>
+            <></>
           ) : (
             <div className="relative px-8 pb-8">
               <div className="flex flex-col items-center -mt-16 mb-8">
-                <div className="w-32 h-32 rounded-full overflow-hidden bg-white ring-4 ring-white shadow-lg">
+              <div className="relative inline-block">
+                <div className="relative w-32 h-32 rounded-full overflow-hidden bg-white ring-4 ring-white shadow-lg">
                   {profile.photo ? (
                     <img
                       src={`${API.defaults.baseURL}${profile.photo}`}
@@ -281,10 +242,26 @@ function ProfileEmployee() {
                     </div>
                   )}
                 </div>
-                <h2 className="mt-4 text-2xl font-bold text-gray-800">{profile.username}</h2>
-                <span className="inline-block px-3 py-1 mt-2 bg-[#f8e9e7] text-[#662b1f] rounded-full text-sm font-medium capitalize">
-                  {profile.department}
-                </span>
+                <button
+                  type="button"
+                  onClick={triggerFileInput}
+                  className="absolute -bottom-2 -right-2 bg-[#662b1f] text-white p-2 rounded-full shadow-lg hover:bg-[#4e2118] transition transform hover:scale-110"
+                  title="Edit Profile Photo"
+                >
+                  <Camera size={20} />
+                </button>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  className="hidden"
+                  accept="image/*"
+                />
+              </div>
+              <h2 className="mt-4 text-2xl font-bold text-gray-800">{profile.username}</h2>
+              <span className="inline-block px-3 py-1 mt-2 bg-[#f8e9e7] text-[#662b1f] rounded-full text-sm font-medium capitalize">
+                {profile.department}
+              </span>
               </div>
               
               <div className="bg-gray-50 rounded-2xl p-6 shadow-inner">
@@ -299,12 +276,6 @@ function ProfileEmployee() {
               </div>
 
               <div className="flex justify-end mt-8">
-                <button
-                  onClick={() => setIsEditing(true)}
-                  className="px-6 py-3 bg-gradient-to-r from-[#662b1f] to-[#8c3b2c] text-white rounded-xl hover:from-[#4e2118] hover:to-[#662b1f] transition shadow-lg flex items-center gap-2"
-                >
-                  Edit Profile
-                </button>
               </div>
               {/* Button untuk mengarahkan ke Change Password */}
               <div className="flex justify-end mt-4">

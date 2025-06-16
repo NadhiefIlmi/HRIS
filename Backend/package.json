@@ -114,6 +114,7 @@
     "type-is": "^1.6.18",
     "typedarray": "^0.0.6",
     "unpipe": "^1.0.0",
+    "unzipper": "^0.12.3",
     "util-deprecate": "^1.0.2",
     "utils-merge": "^1.0.1",
     "vary": "^1.1.2",

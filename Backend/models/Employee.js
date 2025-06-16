@@ -14,7 +14,8 @@ const EducationSchema = new mongoose.Schema({
 const TrainingSchema = new mongoose.Schema({
     title: String,
     provider: String,
-    date: Date
+    start_date: Date,
+    end_date: Date
 }, { _id: true });
 
 const EmployeeSchema = new mongoose.Schema({
@@ -32,17 +33,21 @@ const EmployeeSchema = new mongoose.Schema({
         type: String,
         enum: ['male', 'female'],
         required: true
+    },
+    department: {
+        type: String,
+        enum: ['Production', 'Engineering', 'Sales', 'Marketing', 'Finance'],
+        required: false
     }, 
     bpjs_kesehatan_no: String,
     bpjs_clinic: String,
     bpjs_tk_no: String,
     bpjs_jp_no: String,
-    department: String,
     phone_nmb: String,
     email: String,
+    ktp_address: String,
     photo: { type: String, default: '' },
     educationHistory: [EducationSchema],
-    ktp_address: String,
     trainingHistory: [TrainingSchema],
     salarySlip: { type: String, default: '' },
     password: String,

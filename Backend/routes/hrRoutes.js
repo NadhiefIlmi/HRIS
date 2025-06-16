@@ -3,8 +3,9 @@ const router = express.Router();
 const hrController = require('../controllers/HRController');
 const authenticateHR = require('../middleware/authenticateHR');
 const { checkBlacklistedToken, blacklistedTokens } = require('../middleware/checkBlacklistedToken');
-const { uploadProfilePhoto, uploadSalarySlip } = require('../utils/multerConfig');
+const { uploadProfilePhoto, uploadSalarySlip, uploadSalarySlipZip, uploadEmployeeExcel } = require('../utils/multerConfig');
 const { changePassword } = require('../controllers/HRController');
+
 
 
 router.post('/register', hrController.registerHR);
@@ -22,7 +23,17 @@ router.post('/upload-salary-slip/:employeeId', authenticateHR, uploadSalarySlip.
 router.get('/salary-slip/:employeeId', authenticateHR, hrController.getSalarySlip);
 router.get('/count-employees', authenticateHR, checkBlacklistedToken, hrController.countEmployees);
 router.get('/count-pending-leaves', authenticateHR, checkBlacklistedToken, hrController.countPendingLeaveRequests);
-router.post('/change-password', authenticateHR, changePassword);
+router.post('/change-password', authenticateHR, hrController.changePassword);
 router.get('/gender-summary', authenticateHR, checkBlacklistedToken, hrController.getGenderSummary);
+router.put('/employee/edit/:id', authenticateHR, checkBlacklistedToken, uploadProfilePhoto.single('file'), hrController.editProfileEmployeeByHR);
+router.get('/department-distribution', authenticateHR, checkBlacklistedToken, hrController.getDepartmentDistribution);
+// Announcement routes
+router.post('/announcements', authenticateHR, checkBlacklistedToken, hrController.createAnnouncement);
+router.get('/announcements/date/:date', authenticateHR, checkBlacklistedToken, hrController.getAnnouncementsByDate);
+router.get('/announcements/upcoming', authenticateHR, checkBlacklistedToken, hrController.getUpcomingAnnouncements);
+router.delete('/announcements/:id', authenticateHR, checkBlacklistedToken, hrController.deleteAnnouncement);
+
+router.post('/upload-employee-excel', authenticateHR, uploadEmployeeExcel.single('file'), hrController.uploadExcelEmployees);
+router.post('/upload-zip-slip', authenticateHR, checkBlacklistedToken, uploadSalarySlipZip.single('zipfile'), hrController.uploadSalarySlipZip);
 
 module.exports = router;

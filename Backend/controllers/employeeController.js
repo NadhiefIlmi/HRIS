@@ -8,20 +8,64 @@ const { blacklistedTokens } = require('../middleware/checkBlacklistedToken');
 const { sendLeaveNotification } = require('../utils/emailConfig');
 const Attendance = require('../models/Attendance');
 const LeaveRequest = require('../models/LeaveRequest');
-
+const Announcement = require('../models/Announcement');
 
 exports.registerEmployee = async (req, res) => {
+    console.log("Received request body:", req.body);
+    console.log("Received file:", req.file); // <-- log file untuk debugging
+
     const {
         username, nik, employee_name, joint_date, contract_end_date, dob, pob,
         ktp_number, kk_number, npwp_number, gender, bpjs_kesehatan_no,
-        bpjs_clinic, bpjs_tk_no, bpjs_jp_no, department, phone_nmb, email,
-        photo, ktp_address, educationHistory, trainingHistory,
-        salarySlip, password, attendanceRecords, leaveInfo, leaveRecords
+        bpjs_clinic, bpjs_tk_no, bpjs_jp_no, phone_nmb, email,
+        ktp_address, salarySlip, password, attendanceRecords,
+        leaveInfo, leaveRecords, department
     } = req.body;
 
+
+    // educationHistory dan trainingHistory dari string -> JSON (jika dikirim dari form-data)
+    let educationHistory = [];
+    let trainingHistory = [];
+    try {
+        if (req.body.educationHistory) {
+            educationHistory = JSON.parse(req.body.educationHistory);
+        }
+        if (req.body.trainingHistory) {
+            trainingHistory = JSON.parse(req.body.trainingHistory);
+        }
+    } catch (err) {
+        return res.status(400).json({ message: 'educationHistory/trainingHistory harus berupa JSON yang valid' });
+    }
+
     // Validasi minimal field yang wajib diisi
-    if (!username || !nik || !dob || !password || !gender) {
+    if (!username || !nik || !dob || !password || !gender || !joint_date || !employee_name || !email) {
         return res.status(400).json({ message: 'Required fields are missing' });
+    }
+
+    // Parse leaveInfo if sent as JSON string
+    let parsedLeaveInfo = {};
+    try {
+        if (leaveInfo) {
+            parsedLeaveInfo = typeof leaveInfo === 'string' ? JSON.parse(leaveInfo) : leaveInfo;
+        }
+    } catch (err) {
+        return res.status(400).json({ message: 'leaveInfo harus berupa JSON yang valid' });
+    }
+
+    // Set default totalAnnualLeave if not provided
+    if (!parsedLeaveInfo.totalAnnualLeave) {
+        parsedLeaveInfo.totalAnnualLeave = 12; // default value
+    }
+    // Set default usedAnnualLeave if not provided
+    if (parsedLeaveInfo.usedAnnualLeave === undefined) {
+        parsedLeaveInfo.usedAnnualLeave = 0;
+    }
+    // Ensure remainingAnnualLeave matches totalAnnualLeave if not explicitly set or mismatched
+    if (
+        parsedLeaveInfo.remainingAnnualLeave === undefined ||
+        parsedLeaveInfo.remainingAnnualLeave === 12 && parsedLeaveInfo.totalAnnualLeave !== 12
+    ) {
+        parsedLeaveInfo.remainingAnnualLeave = parsedLeaveInfo.totalAnnualLeave;
     }
 
     try {
@@ -40,21 +84,21 @@ exports.registerEmployee = async (req, res) => {
             kk_number,
             npwp_number,
             gender,
+            department,
             bpjs_kesehatan_no,
             bpjs_clinic,
             bpjs_tk_no,
             bpjs_jp_no,
-            department,
             phone_nmb,
             email,
-            photo,
+            photo: req.file ? req.file.filename : undefined, // <-- simpan nama file kalau ada
             ktp_address,
             educationHistory,
             trainingHistory,
             salarySlip,
             password: hashedPassword,
             attendanceRecords,
-            leaveInfo,
+            leaveInfo: parsedLeaveInfo,
             leaveRecords
         });
 
@@ -65,6 +109,7 @@ exports.registerEmployee = async (req, res) => {
         res.status(500).json({ message: 'Error registering employee' });
     }
 };
+
 
 exports.bulkRegisterEmployees = async (req, res) => {
   const employees = req.body;
@@ -100,7 +145,6 @@ exports.bulkRegisterEmployees = async (req, res) => {
           bpjs_clinic: emp.bpjs_clinic || emp['BPJS Clinic'],
           bpjs_tk_no: emp.bpjs_tk_no || emp['BPJS TK No'],
           bpjs_jp_no: emp.bpjs_jp_no || emp['BPJS JP No'],
-          department: emp.department || '',
           phone_nmb: emp.phone_nmb || emp['No HP'],
           email: emp.email || emp['Email'],
           photo: emp.photo || '',
@@ -461,11 +505,25 @@ exports.leaveRequest =  async (req, res) => {
             return res.status(404).json({ message: 'Employee not found' });
         }
 
-        const totalDays = Math.ceil((new Date(endDate) - new Date(startDate)) / (1000 * 60 * 60 * 24)) + 1;
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        const totalDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
 
-        // Cek jika cuti tahunan yang diajukan lebih besar dari sisa cuti yang tersedia
+  // FIX: Pastikan leaveInfo ada dan ter-initialize dengan benar
+        if (!employee.leaveInfo) {
+            employee.leaveInfo = {
+                totalAnnualLeave: 12,
+                usedAnnualLeave: 0,
+                remainingAnnualLeave: 12
+            };
+            await employee.save();
+        }
+
+      // Cek jika cuti tahunan yang diajukan lebih besar dari sisa cuti yang tersedia
         if (type === 'annual' && totalDays > employee.leaveInfo.remainingAnnualLeave) {
-            return res.status(400).json({ message: 'Not enough leave balance.' });
+            return res.status(400).json({ 
+                message: `Not enough leave balance. You have ${employee.leaveInfo.remainingAnnualLeave} days remaining, but requested ${totalDays} days.` 
+            });
         }
 
         const leaveRequest = new LeaveRequest({
@@ -473,7 +531,8 @@ exports.leaveRequest =  async (req, res) => {
             type,
             startDate,
             endDate,
-            reason
+            reason,
+            totalDays 
         });
 
         await leaveRequest.save();
@@ -484,12 +543,17 @@ exports.leaveRequest =  async (req, res) => {
         );
 
         const hrEmail = process.env.HR_EMAIL; // Atau ambil dari database jika ada banyak HR
-        const leaveDetails = `Type: ${type}\nStart: ${startDate}\nEnd: ${endDate}\nReason: ${reason}`;
+        const leaveDetails = `Type: ${type}\nStart: ${startDate}\nEnd: ${endDate}\nReason: ${reason}\nTotal Days: ${totalDays}`;
         await sendLeaveNotification(hrEmail, employee.username, leaveDetails);
-        res.status(201).json({ message: 'Leave request submitted successfully', leaveRequest });
+        res.status(201).json({ 
+            message: 'Leave request submitted successfully', 
+            leaveRequest,
+            totalDays: totalDays
+        });
 
     } catch (error) {
-        res.status(500).json({ message: 'Internal Server Error', error });
+        console.error("Leave request error:", error);
+        res.status(500).json({ message: 'Internal Server Error', error: error.message });
     }
 };
 
@@ -628,3 +692,53 @@ exports.getAttendanceHistory = async (req, res) => {
     }
   };
   
+
+
+// Get announcements for a specific date
+exports.getAnnouncementsByDate = async (req, res) => {
+  try {
+    const { date } = req.params;
+    const announcements = await Announcement.find({
+      date: new Date(date)
+    }).sort({ time: 1 }).populate('createdBy', 'username');
+
+    res.json(announcements);
+  } catch (error) {
+    console.error('Error fetching announcements by date:', error);
+    res.status(500).json({ message: 'Internal server error', error });
+  }
+};
+
+// Get upcoming announcements
+exports.getUpcomingAnnouncements = async (req, res) => {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const announcements = await Announcement.find({
+      date: { $gte: today }
+    }).sort({ date: 1, time: 1 })
+      .limit(5)
+      .populate('createdBy', 'username');
+
+    res.json(announcements);
+  } catch (error) {
+    console.error('Error fetching upcoming announcements:', error);
+    res.status(500).json({ message: 'Internal server error', error });
+  }
+};
+
+// New controller to get leave information of logged-in employee
+exports.getLeaveInfo = async (req, res) => {
+  try {
+    const employeeId = req.employee._id;
+    const employee = await Employee.findById(employeeId).select('leaveInfo');
+    if (!employee) {
+      return res.status(404).json({ message: 'Employee not found' });
+    }
+    res.json(employee.leaveInfo);
+  } catch (error) {
+    console.error('Error fetching leave info:', error);
+    res.status(500).json({ message: 'Internal server error', error });
+  }
+};

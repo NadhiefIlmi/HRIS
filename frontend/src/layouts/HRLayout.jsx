@@ -1,32 +1,53 @@
-import React, { useEffect, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { 
-  Home, 
-  Users, 
-  Calendar, 
-  LogOut, 
-  Settings, 
+import React, { useEffect, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import {
+  Home,
+  Users,
+  Calendar,
+  LogOut,
   ChevronRight,
   Menu,
-  X
-} from 'lucide-react';
-import ChateraiseLogo from '../assets/Chateraise2.png';
-import API from '../api/api';
+  LayoutDashboard,
+  X,
+  Plus,
+  Sparkles,
+  Clock,
+} from "lucide-react";
+import ChateraiseLogo from "../assets/Chateraise2.png";
+import API from "../api/api";
 
-const NavLink = ({ to, icon: Icon, label }) => {
+const NavLink = ({ to, icon: Icon, label, badgeCount }) => {
   const location = useLocation();
-  const isActive = location.pathname === to || location.pathname.startsWith(`${to}/`);
+  const isActive =
+    location.pathname === to || location.pathname.startsWith(`${to}/`);
 
   return (
     <Link
       to={to}
-      className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ${isActive
-          ? 'bg-gradient-to-r from-[#662b1f] to-[#8a3b2d] text-white font-medium shadow-md'
-          : 'text-gray-700 hover:bg-[#f5e8e0] hover:text-[#662b1f]'
-        }`}
+      className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group ${
+        isActive
+          ? "bg-gradient-to-r from-[#662b1f] to-[#8a3b2d] text-white font-semibold shadow-lg transform scale-105"
+          : "text-gray-700 hover:bg-gradient-to-r hover:from-[#f5e8e0] hover:to-orange-50/50 hover:text-[#662b1f] hover:shadow-md hover:scale-105"
+      }`}
     >
-      <Icon size={18} strokeWidth={isActive ? 2.5 : 2} />
-      <span className="text-sm whitespace-nowrap">{label}</span>
+      <Icon
+        size={18}
+        strokeWidth={isActive ? 2.5 : 2}
+        className={`${isActive ? "text-white" : "group-hover:text-[#662b1f]"}`}
+      />
+      <span className="text-sm whitespace-nowrap font-medium">{label}</span>
+      {badgeCount > 0 && (
+        <span
+          className={`ml-auto px-2 py-0.5 rounded-full text-xs font-bold ${
+            isActive ? "bg-white/20 text-white" : "bg-orange-100 text-[#662b1f]"
+          }`}
+        >
+          {badgeCount}
+        </span>
+      )}
+      {isActive && !badgeCount && (
+        <div className="ml-auto w-2 h-2 bg-white/30 rounded-full"></div>
+      )}
     </Link>
   );
 };
@@ -34,39 +55,65 @@ const NavLink = ({ to, icon: Icon, label }) => {
 function HRLayout({ children }) {
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
-  const [notificationCount, setNotificationCount] = useState(3);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [pendingLeavesCount, setPendingLeavesCount] = useState(0);
   const [formData, setFormData] = useState({
-        username: ''
-      });
-  
+    username: "",
+  });
+
   // Fetch Profile from the API
   const fetchProfile = async () => {
     try {
-      const response = await API.get('/api/hr/me');
+      const response = await API.get("/api/hr/me");
       setProfile(response.data);
       setFormData({
-        username: response.data.username || ''
+        username: response.data.username || "",
       });
     } catch (err) {
-      console.error('Error fetching profile for avatar:', err);
+      console.error("Error fetching profile:", err);
       if (err.response && err.response.status === 401) {
         localStorage.clear();
-        navigate('/');
+        navigate("/");
       }
     }
   };
 
+  const fetchPendingLeavesCount = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await API.get("/api/hr/count-pending-leaves", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setPendingLeavesCount(response.data?.totalPendingRequests || 0);
+    } catch (err) {
+      console.error("Error fetching pending leaves count:", err);
+    }
+  };
+
+  // Function to update count from child components
+  const updatePendingLeavesCount = (count) => {
+    setPendingLeavesCount(count);
+  };
+
   useEffect(() => {
     fetchProfile();
+    fetchPendingLeavesCount();
 
     // Update time every minute
     const timeInterval = setInterval(() => {
       setCurrentTime(new Date());
     }, 60000);
 
-    return () => clearInterval(timeInterval);
+    // Refresh pending leaves count every 5 minutes
+    const leavesInterval = setInterval(() => {
+      fetchPendingLeavesCount();
+    }, 300000);
+
+    return () => {
+      clearInterval(timeInterval);
+      clearInterval(leavesInterval);
+    };
   }, []);
 
   useEffect(() => {
@@ -77,64 +124,88 @@ function HRLayout({ children }) {
       }
     };
 
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, [sidebarOpen]);
 
   const handleLogout = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
 
       if (token) {
-        await API.post('/api/hr/logout', {}, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        await API.post(
+          "/api/hr/logout",
+          {},
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
       }
 
       localStorage.clear();
-      navigate('/');
+      navigate("/");
     } catch (error) {
-      console.error('Error logging out:', error);
+      console.error("Error logging out:", error);
       localStorage.clear();
-      navigate('/');
+      navigate("/");
     }
   };
 
   if (!profile) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <p className="text-gray-500 text-sm">Please wait...</p>
+      <div className="flex items-center justify-center h-screen min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40">
+        <div className="animate-pulse flex space-x-4 items-center">
+          <div className="rounded-full bg-gradient-to-r from-[#662b1f] to-orange-400 h-3 w-3"></div>
+          <div className="text-gray-600 text-sm font-medium">
+            Loading your workspace...
+          </div>
+          <Sparkles className="text-[#662b1f] animate-bounce" size={16} />
+        </div>
       </div>
     );
   }
 
   const capitalizedName = profile.username
-  ? profile.username.charAt(0).toUpperCase() + profile.username.slice(1)
-  : '';
-  
-  const formattedDate = currentTime.toLocaleDateString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
+    ? profile.username.charAt(0).toUpperCase() + profile.username.slice(1)
+    : "";
+
+  const formattedDate = currentTime.toLocaleDateString("en-US", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
+  // Clone children and pass updatePendingLeavesCount as prop
+  const childrenWithProps = React.Children.map(children, (child) => {
+    if (React.isValidElement(child)) {
+      return React.cloneElement(child, { updatePendingLeavesCount });
+    }
+    return child;
   });
 
   return (
-    <div className="flex h-screen bg-[#f8f5f3] overflow-hidden">
+    <div className="flex h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 overflow-hidden">
+      {/* Background decorative elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-[#662b1f]/5 to-orange-200/10 rounded-full blur-3xl"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-blue-200/10 to-purple-200/10 rounded-full blur-3xl"></div>
+      </div>
+
       {/* Mobile Overlay */}
       {sidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-20 lg:hidden"
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-20 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
       )}
 
-      {/* Sidebar */}
-      <aside 
-        className={`fixed lg:static w-72 bg-white h-full border-r border-[#f0e8e4] py-8 flex flex-col z-30 shadow-xl transition-all duration-300 transform ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+      {/* Enhanced Sidebar */}
+      <aside
+        className={`fixed lg:static w-72 bg-white/95 backdrop-blur-xl h-full border-r border-white/50 py-8 flex flex-col z-30 shadow-2xl transition-all duration-300 transform ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
       >
         <div className="mb-10 px-6">
@@ -142,114 +213,200 @@ function HRLayout({ children }) {
             <img
               src={ChateraiseLogo}
               alt="Chateraise Logo"
-              className="h-12 object-contain"
+              className="h-12 object-contain filter drop-shadow-sm"
             />
-            <button 
-              className="lg:hidden text-gray-500 hover:text-[#662b1f]"
+            <button
+              className="lg:hidden text-gray-500 hover:text-[#662b1f] p-2 rounded-xl hover:bg-gray-50/80 transition-all duration-200"
               onClick={() => setSidebarOpen(false)}
             >
-              <X size={24} />
+              <X size={20} />
             </button>
           </div>
 
-          <div className="bg-[#fdf6f3] rounded-2xl p-4 shadow-sm backdrop-blur-sm border border-[#f0e8e4]">
+          {/* Enhanced Profile Card */}
+          <div className="bg-gradient-to-br from-[#fdf6f3] to-orange-50/30 rounded-2xl p-4 shadow-lg backdrop-blur-sm border border-white/60 relative overflow-hidden">
+            {/* Decorative element */}
+            <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-[#662b1f]/10 to-orange-200/20 rounded-full -translate-y-10 translate-x-10"></div>
+
             {profile?.photo ? (
-              <div className="flex items-center gap-3">
-                <img
-                  src={`${API.defaults.baseURL}${profile.photo}`}
-                  alt="Avatar"
-                  className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-md"
-                />
+              <div className="flex items-center gap-3 relative">
+                <div className="relative">
+                  <img
+                    src={`${API.defaults.baseURL}${profile.photo}`}
+                    alt="Avatar"
+                    className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-lg"
+                  />
+                  <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full border-2 border-white shadow-sm"></div>
+                </div>
                 <div>
-                  <h4 className="font-semibold text-[#662b1f]">{capitalizedName}</h4>
-                  <p className="text-xs text-gray-500">HR Manager</p>
+                  <h4 className="font-bold text-[#662b1f] flex items-center">
+                    {capitalizedName}
+                    <Sparkles className="ml-1 text-orange-400" size={12} />
+                  </h4>
+                  <p className="text-xs text-gray-600 font-medium bg-white/50 px-2 py-1 rounded-full">
+                    HR Manager
+                  </p>
                 </div>
               </div>
             ) : (
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#662b1f] to-[#8a3b2d] flex items-center justify-center text-white font-semibold text-lg shadow-md border-2 border-white">
-                  {capitalizedName.charAt(0)}
+              <div className="flex items-center gap-3 relative">
+                <div className="relative">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#662b1f] to-[#8a3b2d] flex items-center justify-center text-white font-bold text-lg shadow-lg border-2 border-white">
+                    {capitalizedName.charAt(0)}
+                  </div>
+                  <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full border-2 border-white shadow-sm"></div>
                 </div>
                 <div>
-                  <h4 className="font-semibold text-[#662b1f]">{capitalizedName}</h4>
-                  <p className="text-xs text-gray-500">HR Manager</p>
+                  <h4 className="font-bold text-[#662b1f] flex items-center">
+                    {capitalizedName}
+                    <Sparkles className="ml-1 text-orange-400" size={12} />
+                  </h4>
+                  <p className="text-xs text-gray-600 font-medium bg-white/50 px-2 py-1 rounded-full">
+                    HR Manager
+                  </p>
                 </div>
               </div>
             )}
           </div>
         </div>
 
-        {/* Main Menu */}
-        <nav className="flex-1 px-4 flex flex-col gap-2 overflow-y-auto scrollbar-thin scrollbar-thumb-[#f0e8e4] scrollbar-track-transparent">
-          <p className="px-4 text-xs font-medium text-gray-400 mb-1 uppercase tracking-wider">Main Menu</p>
-          <NavLink to="/dashboard" icon={Home} label="Dashboard" />
-          <div className="flex flex-col gap-1">
+        {/* Enhanced Main Menu */}
+        <nav className="flex-1 px-4 flex flex-col gap-3 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200 scrollbar-track-transparent">
+          <div className="flex items-center px-4 mb-2">
+            <div className="w-1 h-4 bg-gradient-to-b from-[#662b1f] to-orange-500 rounded-full mr-2"></div>
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+              Main Menu
+            </p>
+          </div>
+
+          <NavLink
+            to="http://103.134.154.55:4000/"
+            icon={Home}
+            label="Chateraise"
+          />
+          <NavLink to="/dashboard" icon={LayoutDashboard} label="Dashboard" />
+
+          <div className="flex flex-col gap-2">
             <NavLink to="/employees" icon={Users} label="Employees" />
-            {/* Link to Add Employee page */}
+            {/* Enhanced Add Employee link */}
             <Link
               to="/employees/add"
-              className="ml-10 text-xs text-[#662b1f] px-3 py-2 rounded-lg hover:bg-[#f5e8e0] transition flex items-center gap-2"
+              className="ml-6 flex items-center gap-2 px-4 py-2 rounded-xl text-[#662b1f] hover:bg-gradient-to-r hover:from-green-50 hover:to-emerald-50/50 transition-all duration-200 group hover:shadow-md hover:scale-105 border border-transparent hover:border-green-200/50"
             >
-              <span className="w-4 h-4 bg-[#662b1f] text-white rounded-full flex items-center justify-center text-xs font-bold">+</span>
-              <span>Add Employee</span>
+              <div className="w-5 h-5 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-full flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform duration-200">
+                <Plus size={12} strokeWidth={3} />
+              </div>
+              <span className="text-xs font-semibold">Add Employee</span>
+            </Link>
+
+            <Link
+              to="/employees/add-excell"
+              className="ml-6 flex items-center gap-2 px-4 py-2 rounded-xl text-[#662b1f] hover:bg-gradient-to-r hover:from-green-50 hover:to-emerald-50/50 transition-all duration-200 group hover:shadow-md hover:scale-105 border border-transparent hover:border-green-200/50"
+            >
+              <div className="w-5 h-5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full flex items-center justify-center shadow-sm group-hover:scale-110 group-hover:rotate-3 transition-transform duration-200">
+                <svg
+                  className="w-3.5 h-3.5"
+                  fill="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
+                </svg>
+              </div>
+              <span className="text-xs font-semibold">
+                Add Employee From Excell
+              </span>
             </Link>
           </div>
 
-          <NavLink to="/leave-requests" icon={Calendar} label="Leave Requests" />
-          <NavLink to="http://103.134.154.55:4000/" icon={Calendar} label="Home Page" />
+          <NavLink
+            to="/leave-requests"
+            icon={Calendar}
+            label="Leave Requests"
+            badgeCount={pendingLeavesCount}
+          />
         </nav>
 
-        {/* Logout Button */}
+        {/* Enhanced Logout Button */}
         <div className="mt-auto mb-6 px-6">
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-white bg-gradient-to-r from-red-600 to-[#662b1f] hover:shadow-md transition-all duration-200 hover:scale-105"
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-white bg-gradient-to-r from-red-500 to-[#662b1f] hover:shadow-xl transition-all duration-300 hover:scale-105 hover:from-red-600 hover:to-[#7d3420] font-semibold relative overflow-hidden group"
           >
-            <LogOut size={18} />
-            <span className="text-sm font-medium">Logout</span>
+            <div className="absolute inset-0 bg-gradient-to-r from-white/0 to-white/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500"></div>
+            <LogOut size={18} className="relative z-10" />
+            <span className="text-sm font-semibold relative z-10">Logout</span>
           </button>
         </div>
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col h-screen overflow-hidden">
-        {/* Header */}
-        <header className="bg-white p-6 flex justify-between items-center border-b border-[#f0e8e4] shadow-sm sticky top-0 z-10">
+      <main className="flex-1 flex flex-col h-screen overflow-hidden relative">
+        {/* Enhanced Header */}
+        <header className="bg-white/90 backdrop-blur-xl p-6 flex justify-between items-center border-b border-white/50 shadow-lg sticky top-0 z-10 relative">
           <div className="flex items-center gap-4">
             <button
-              className="lg:hidden text-[#662b1f] hover:bg-[#f5e8e0] p-2 rounded-lg"
+              className="lg:hidden text-[#662b1f] hover:bg-gradient-to-r hover:from-[#f5e8e0] hover:to-orange-50/50 p-2 rounded-xl transition-all duration-200 hover:shadow-md hover:scale-105"
               onClick={() => setSidebarOpen(true)}
             >
               <Menu size={24} />
             </button>
             <div>
-              <h1 className="text-xl md:text-2xl font-bold text-[#662b1f] flex items-center">
+              <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-[#662b1f] to-orange-600 bg-clip-text text-transparent flex items-center">
                 Welcome back, {capitalizedName}
-                <span className="hidden sm:inline-block ml-2 px-3 py-1 bg-[#f5e8e0] text-xs rounded-full text-[#662b1f] font-normal">
+                <span className="hidden sm:inline-block ml-3 px-3 py-1 bg-gradient-to-r from-[#f5e8e0] to-orange-50/50 text-xs rounded-full text-[#662b1f] font-semibold border border-orange-200/50 shadow-sm">
                   HR Manager
                 </span>
+                <Sparkles
+                  className="ml-2 text-orange-400 animate-pulse"
+                  size={20}
+                />
               </h1>
-              <p className="text-xs md:text-sm text-gray-500">{formattedDate}</p>
+              <p className="text-xs md:text-sm text-gray-600 font-medium flex items-center mt-1">
+                <Clock size={14} className="mr-1 text-blue-500" />
+                {formattedDate}
+              </p>
             </div>
           </div>
 
           <div className="flex items-center gap-3 md:gap-6">
-            
+            {/* Enhanced Time Display */}
+            <div className="flex items-center space-x-3">
+              <Clock size={18} className="text-blue-500" />
+              <div className="text-right">
+                <div className="text-lg font-bold text-gray-900">
+                  {currentTime.toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Enhanced Profile Link */}
             <Link
               to="/profile"
-              className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-[#f5e8e0] transition-colors border border-[#f0e8e4]"
+              className="flex items-center gap-2 px-4 py-2 rounded-xl hover:bg-gradient-to-r hover:from-[#f5e8e0] hover:to-orange-50/50 transition-all duration-200 border border-white/50 bg-white/80 backdrop-blur-sm shadow-sm hover:shadow-lg hover:scale-105 group"
             >
-              <span className="font-medium text-gray-800 text-sm">My Profile</span>
-              <ChevronRight size={16} className="text-[#662b1f]" />
+              <span className="font-semibold text-gray-800 text-sm">
+                My Profile
+              </span>
+              <ChevronRight
+                size={16}
+                className="text-[#662b1f] group-hover:translate-x-1 transition-transform duration-200"
+              />
             </Link>
           </div>
         </header>
 
-        {/* Content Area */}
+        {/* Enhanced Content Area */}
         <div className="flex-1 p-4 md:p-8 overflow-auto">
-          <div className="bg-white rounded-2xl shadow-md p-6 md:p-8 min-h-full border border-[#f0e8e4]">
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg p-6 md:p-8 min-h-full border border-white/50 relative overflow-hidden">
+            {/* Decorative background elements for content area */}
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[#662b1f]/3 to-orange-100/10 rounded-full -translate-y-16 translate-x-16"></div>
+            <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-blue-100/10 to-purple-100/10 rounded-full translate-y-12 -translate-x-12"></div>
+
             {/* Main children content */}
-            {children}
+            <div className="relative z-10">{childrenWithProps}</div>
           </div>
         </div>
       </main>
