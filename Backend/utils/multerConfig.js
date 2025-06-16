@@ -54,6 +54,35 @@ const fileFilterForZip = (req, file, cb) => {
     }
 };
 
+const fileFilterForExcel = (req, file, cb) => {
+    const allowedMimeTypes = [
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/vnd.ms-excel' // fallback untuk beberapa .xls
+    ];
+    if (allowedMimeTypes.includes(file.mimetype)) {
+        cb(null, true);
+    } else {
+        cb(new Error('Invalid file type. Only Excel files are allowed (.xlsx or .xls).'));
+    }
+};
+
+// Storage untuk Excel (upload employee)
+const getStorageForExcel = () => multer.diskStorage({
+    destination: (req, file, cb) => {
+        const dir = path.join(__dirname, 'uploads/excels');
+        if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir, { recursive: true });
+        }
+        cb(null, dir);
+    },
+    filename: (req, file, cb) => {
+        const now = new Date();
+        const pad = n => n.toString().padStart(2, '0');
+        const formattedDate = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+        cb(null, `${formattedDate}_${file.originalname}`);
+    }
+});
+
 // Storage untuk file ZIP sementara
 const getStorageForZip = () => multer.diskStorage({
     destination: (req, file, cb) => {
@@ -85,5 +114,8 @@ module.exports = {
     // Middleware untuk upload profil foto (gambar)
     uploadProfilePhoto: multer({ storage: getStorageForProfilePhoto(), fileFilter: fileFilterForProfilePhoto }),
 
-    uploadSalarySlipZip: multer({ storage: getStorageForSalarySlip(), fileFilter: fileFilterForZip })
+    uploadSalarySlipZip: multer({ storage: getStorageForSalarySlip(), fileFilter: fileFilterForZip }),
+
+    uploadEmployeeExcel: multer({ storage: getStorageForExcel(), fileFilter: fileFilterForExcel })
+
 };

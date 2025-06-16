@@ -9,7 +9,6 @@ const HRSchema = new mongoose.Schema({
     gender: {
         type: String,
         enum: ['male', 'female'],
-        required: true
     },
     phone_nmb: String,
     address: String

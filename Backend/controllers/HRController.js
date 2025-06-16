@@ -8,6 +8,7 @@ const fs = require('fs');
 const mongoose = require('mongoose');
 const { blacklistedTokens } = require('../middleware/checkBlacklistedToken');
 const LeaveRequest = require('../models/LeaveRequest');
+const xlsx = require('xlsx');
 
 
 exports.registerHR = async (req, res) => {
@@ -27,6 +28,7 @@ exports.registerHR = async (req, res) => {
         await newHR.save();
         res.json({ message: 'HR registered successfully' });
     } catch (err) {
+        console.error('Register HR error:', err);
         res.status(500).json({ message: 'Error registering HR' });
     }
 };
@@ -378,3 +380,78 @@ exports.uploadSalarySlipZip = async (req, res) => {
         res.status(500).json({ message: 'Internal Server Error', error });
     }
 };
+
+exports.uploadExcelEmployees = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No Excel file uploaded' });
+    }
+
+    const workbook = xlsx.readFile(req.file.path);
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const data = xlsx.utils.sheet_to_json(sheet, { defval: '' });
+
+    fs.unlinkSync(req.file.path); // hapus file setelah dibaca
+
+    const employees = await Promise.all(
+      data.map(async (emp) => {
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(emp.Password || 'DefaultPass123', salt);
+
+        return {
+          username: emp['username_final'],
+          nik: emp['NIK'],
+          employee_name: emp['Employee Name'],
+          joint_date: formatDate(emp['Joint Date']),
+          contract_end_date: formatDate(emp['Contract End date']),
+          dob: formatDate(emp['Date of Birth']),
+          pob: emp['Place of Birth'],
+          ktp_number: emp['KTP Number'],
+          kk_number: emp['KK No'],
+          npwp_number: emp['NPWP Number'],
+          gender: emp['Gender']?.toLowerCase() === 'l' ? 'male' : 'female',
+          bpjs_kesehatan_no: emp['BPJS Kesehatan No'],
+          bpjs_clinic: emp['BPJS Clinic'],
+          bpjs_tk_no: emp['BPJS TK No'],
+          bpjs_jp_no: emp['BPJS JP No'],
+          phone_nmb: emp['No HP'],
+          email: emp['Email'],
+          ktp_address: emp['KTP Address'],
+          photo: '',
+          department: emp['Department'] || '',
+          educationHistory: [
+            {
+              last_education: emp['Last Education'],
+              institution: emp['School / University'],
+              majority: emp['Majority'],
+              year_of_graduation: emp['Year of Graduation'],
+            },
+          ],
+          trainingHistory: [],
+          attendanceRecords: [],
+          leaveInfo: [],
+          leaveRecords: [],
+          salarySlip: '',
+          password: hashedPassword,
+        };
+      })
+    );
+
+    await Employee.insertMany(employees);
+
+    res.status(201).json({
+      message: 'Successfully uploaded and registered employees',
+      count: employees.length,
+    });
+  } catch (err) {
+    console.error('Upload Excel Error:', err);
+    res.status(500).json({ message: 'Failed to process Excel file', error: err.message });
+  }
+};
+
+function formatDate(excelDate) {
+  if (!excelDate) return '';
+  if (typeof excelDate === 'string') return excelDate.split('T')[0];
+  const date = new Date((excelDate - 25569) * 86400 * 1000);
+  return date.toISOString().split('T')[0];
+}

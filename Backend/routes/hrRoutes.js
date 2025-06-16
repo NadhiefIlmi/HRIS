@@ -3,7 +3,7 @@ const router = express.Router();
 const hrController = require('../controllers/HRController');
 const authenticateHR = require('../middleware/authenticateHR');
 const { checkBlacklistedToken, blacklistedTokens } = require('../middleware/checkBlacklistedToken');
-const { uploadProfilePhoto, uploadSalarySlip, uploadSalarySlipZip } = require('../utils/multerConfig');
+const { uploadProfilePhoto, uploadSalarySlip, uploadSalarySlipZip, uploadEmployeeExcel } = require('../utils/multerConfig');
 const { changePassword } = require('../controllers/HRController');
 
 
@@ -19,6 +19,7 @@ router.put('/approve-leave/:id', authenticateHR, hrController.leaveApproval);
 router.get('/leave-requests', authenticateHR, hrController.viewLeaveRequest);
 router.get('/leave-requests/pending', authenticateHR, hrController.viewPendingLeaveRequest);
 router.post('/upload-salary-slip/:employeeId', authenticateHR, uploadSalarySlip.single('salarySlip'), hrController.uploadSalarySlip);
+router.post('/upload-employee-excel', authenticateHR, uploadEmployeeExcel.single('file'), hrController.uploadExcelEmployees);
 router.get('/salary-slip/:employeeId', authenticateHR, hrController.getSalarySlip);
 router.get('/count-employees', authenticateHR, checkBlacklistedToken, hrController.countEmployees);
 router.get('/count-pending-leaves', authenticateHR, checkBlacklistedToken, hrController.countPendingLeaveRequests);
