@@ -35,6 +35,8 @@ function EmployeeHome() {
   const [attendanceStatus, setAttendanceStatus] = useState(null);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [leaveInfo, setLeaveInfo] = useState(null); // Add this line
+  const [autoCheckoutDone, setAutoCheckoutDone] = useState(false);
+  const [showReminder, setShowReminder] = useState(false);
 
   // Calendar and announcements state
   const [activeTab, setActiveTab] = useState("quickAccess");
@@ -116,6 +118,66 @@ const fetchLeaveInfo = async () => {
       setCheckOutLoading(false);
     }
   };
+  // Auto-checkout
+  const handleAutoCheckOut = async () => {
+    try {
+      await API.post("/api/employee/check-out");
+      fetchAttendanceStatus();
+      showNotification(
+        "Auto Check Out", 
+        "You have been automatically checked out at 5 PM", 
+        "info"
+      );
+      setAutoCheckoutDone(true);
+    } catch (err) {
+      console.error("Failed to auto check out:", err);
+    }
+  };
+
+  // Effect to check the time and attendance status
+  useEffect(() => {
+    const checkAutoCheckout = () => {
+      const now = new Date();
+      const currentHour = now.getHours();
+      const currentMinutes = now.getMinutes();
+      const currentSecond = now.getSeconds();
+
+      // Check is it already 5 PM (17:00)
+      if (currentHour >= 17 && currentMinutes >= 0 && currentSecond == 0 && !autoCheckoutDone) {
+        if (attendanceStatus?.checkIn && !attendanceStatus?.checkOut) {
+          handleAutoCheckOut();
+        }
+      }
+      
+      // Give warning to employee to check out before 5 PM (16:50)
+      if (currentHour === 16 && currentMinutes >= 50 && currentSecond == 0 && !attendanceStatus?.checkOut) {
+        setShowReminder(true);
+      } else {
+        setShowReminder(false);
+      }
+    };
+
+    // Check every minute
+    const interval = setInterval(checkAutoCheckout, 60000);
+    
+    checkAutoCheckout();
+    
+    return () => clearInterval(interval);
+  }, [attendanceStatus, autoCheckoutDone]);
+
+  // RCheck out status reset every midnight
+  useEffect(() => {
+    const resetAtMidnight = () => {
+      const now = new Date();
+      if (now.getHours() === 0 && now.getMinutes() === 0) {
+        setAutoCheckoutDone(false);
+        setShowReminder(false);
+      }
+    };
+
+    const interval = setInterval(resetAtMidnight, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Fetch announcements for a specific date
   const fetchAnnouncementsByDate = async (date) => {
@@ -629,6 +691,26 @@ useEffect(() => {
           ))}
         </div>
       </div>
+
+        {showReminder && (
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="fixed top-4 right-4 z-50"
+          >
+            <div className="bg-yellow-500 text-white px-4 py-3 rounded-lg shadow-lg flex items-center">
+              <Clock className="mr-2" size={20} />
+              <span className="text-sm">Don't forget to check out before 5 PM!</span>
+              <button 
+                className="ml-4 text-yellow-200 hover:text-white"
+                onClick={() => setShowReminder(false)}
+              >
+                <X size={16} />
+              </button>
+            </div>
+          </motion.div>
+        )}
 
       <motion.div
         initial="hidden"

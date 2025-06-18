@@ -18,6 +18,14 @@ const TrainingSchema = new mongoose.Schema({
     end_date: Date
 }, { _id: true });
 
+const SalarySlipSchema = new mongoose.Schema({
+  path: String,   // Path file slip gaji
+  date: {         // Tanggal upload slip
+    type: Date,
+    default: Date.now
+  }
+}, { _id: true });
+
 const EmployeeSchema = new mongoose.Schema({
     username: String,
     nik: String,
@@ -49,7 +57,7 @@ const EmployeeSchema = new mongoose.Schema({
     photo: { type: String, default: '' },
     educationHistory: [EducationSchema],
     trainingHistory: [TrainingSchema],
-    salarySlip: { type: String, default: '' },
+    salarySlips: [SalarySlipSchema],
     password: String,
     attendanceRecords: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Attendance' }],
     leaveInfo: { 

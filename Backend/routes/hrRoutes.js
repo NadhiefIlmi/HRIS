@@ -20,7 +20,7 @@ router.put('/approve-leave/:id', authenticateHR, hrController.leaveApproval);
 router.get('/leave-requests', authenticateHR, hrController.viewLeaveRequest);
 router.get('/leave-requests/pending', authenticateHR, hrController.viewPendingLeaveRequest);
 router.post('/upload-salary-slip/:employeeId', authenticateHR, uploadSalarySlip.single('salarySlip'), hrController.uploadSalarySlip);
-router.get('/salary-slip/:employeeId', authenticateHR, hrController.getSalarySlip);
+router.get('/salary-slip/:employeeId', authenticateHR, hrController.getSalarySlips);
 router.get('/count-employees', authenticateHR, checkBlacklistedToken, hrController.countEmployees);
 router.get('/count-pending-leaves', authenticateHR, checkBlacklistedToken, hrController.countPendingLeaveRequests);
 router.post('/change-password', authenticateHR, hrController.changePassword);

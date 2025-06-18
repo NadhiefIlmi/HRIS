@@ -14,7 +14,7 @@ const readdir = promisify(fs.readdir);
 const unlink = promisify(fs.unlink);
 const rename = promisify(fs.rename);
 const rmdir = promisify(fs.rmdir);
-
+const xlsx = require('xlsx');
 
 exports.registerHR = async (req, res) => {
     const { username, password } = req.body;
@@ -443,19 +443,37 @@ exports.uploadSalarySlip = async (req, res) => {
     }
 };
 
-exports.getSalarySlip =  async (req, res) => {
+exports.getSalarySlips = async (req, res) => {
     try {
         const employee = await Employee.findById(req.params.employeeId);
-        console.log(employee);
-        if (!employee || !employee.salarySlip) {
-            return res.status(404).json({ message: 'No salary slip available' });
+        
+        if (!employee) {
+            return res.status(404).json({ message: 'Employee not found' });
         }
 
-        // Pastikan URL bisa diakses dari browser
-        res.json({ salarySlip: encodeURI(`${req.protocol}://${req.get('host')}${employee.salarySlip}`) });
+        // Cek apakah ada slip gaji
+        if (!employee.salarySlips || employee.salarySlips.length === 0) {
+            return res.status(404).json({ message: 'No salary slips available' });
+        }
+
+        // Buat URL lengkap untuk setiap slip gaji
+        const baseUrl = `${req.protocol}://${req.get('host')}`;
+        const salarySlips = employee.salarySlips.map(slip => ({
+            path: encodeURI(`${baseUrl}${slip.path}`),
+            date: slip.date
+        }));
+
+        res.json({ 
+            employee: employee.employee_name,
+            salarySlips 
+        });
+        
     } catch (error) {
-        res.status(500).json({ message: 'Internal Server Error', error });
-        console.log(error);
+        console.error(error);
+        res.status(500).json({ 
+            message: 'Internal Server Error', 
+            error: error.message 
+        });
     }
 };
 
@@ -679,41 +697,89 @@ exports.uploadSalarySlipZip = async (req, res) => {
 
         let matched = 0;
         let unmatchedFiles = [];
+        let failedFiles = [];
 
-        // Fungsi normalisasi
-        const normalize = str => str.toLowerCase().replace(/\s/g, '');
+        // Fungsi normalisasi yang lebih robust
+        const normalize = (str) => {
+            return str
+                .toLowerCase()
+                .replace(/\s/g, '')
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '') // Hapus diakritik
+                .replace(/[^a-z0-9]/g, ''); // Hapus karakter khusus
+        };
 
         for (const file of files) {
             const filePath = path.join(extractDir, file);
+            let finalPath, finalFilename;
 
-            // Ambil nama dari file (tanpa prefix dan ekstensi)
-            const fileNameNormalized = normalize(
-                file.replace(/^salary_/, '').replace(/\.pdf$/, '')
-            );
+            try {
+                // Ambil nama dari file (tanpa prefix dan ekstensi)
+                const fileNameNormalized = normalize(
+                    file.replace(/^salary_/i, '').replace(/\.pdf$/i, '')
+                );
 
-            // Cari employee yang cocok
-            const matchedEmployee = employees.find(emp =>
-                normalize(emp.employee_name) === fileNameNormalized
-            );
+                // Cari employee yang cocok
+                const matchedEmployee = employees.find(emp => 
+                    normalize(emp.employee_name) === fileNameNormalized
+                );
 
-            if (matchedEmployee) {
-                // Format tanggal untuk nama file
-                const now = new Date();
-                const pad = n => n.toString().padStart(2, '0');
-                const formattedDate = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-                const finalFilename = `${formattedDate}_${file}`;
-                const finalPath = path.join(__dirname, '../utils/uploads/salary-slips', finalFilename);
+                if (matchedEmployee) {
+                    // Format tanggal untuk nama file
+                    const now = new Date();
+                    const pad = n => n.toString().padStart(2, '0');
+                    const formattedDate = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}-${pad(now.getHours())}.${pad(now.getMinutes())}.${pad(now.getSeconds())}`;
+                    finalFilename = `${formattedDate}_${file}`;
+                    finalPath = path.join(__dirname, '../utils/uploads/salary-slips', finalFilename);
 
-                // Pindahkan file dan update path di database
-                fs.renameSync(filePath, finalPath);
+                    // Pindahkan file ke folder permanen
+                    fs.renameSync(filePath, finalPath);
 
-                matchedEmployee.salarySlip = `/uploads/salary-slips/${finalFilename}`;
-                await matchedEmployee.save();
+                    // Pastikan salarySlips adalah array
+                    if (!matchedEmployee.salarySlips) {
+                        matchedEmployee.salarySlips = [];
+                    }
 
-                matched++;
-            } else {
-                unmatchedFiles.push(file);
-                fs.unlinkSync(filePath); // Hapus file tak dikenali
+                    // Tambahkan slip baru ke array
+                    matchedEmployee.salarySlips.push({
+                        path: `/uploads/salary-slips/${finalFilename}`,
+                        date: now
+                    });
+
+                    // Urutkan berdasarkan tanggal (terbaru pertama)
+                    matchedEmployee.salarySlips.sort((a, b) => b.date - a.date);
+
+                    // Hapus slip terlama jika lebih dari 3
+                    if (matchedEmployee.salarySlips.length > 3) {
+                        const slipsToRemove = matchedEmployee.salarySlips.slice(3);
+                        matchedEmployee.salarySlips = matchedEmployee.salarySlips.slice(0, 3);
+                        
+                        // Hapus file fisik slip terlama
+                        slipsToRemove.forEach(slip => {
+                            const fileToDelete = path.join(__dirname, '../utils', slip.path);
+                            if (fs.existsSync(fileToDelete)) {
+                                fs.unlinkSync(fileToDelete);
+                            }
+                        });
+                    }
+
+                    // Simpan perubahan
+                    await matchedEmployee.save();
+                    matched++;
+                } else {
+                    unmatchedFiles.push(file);
+                    fs.unlinkSync(filePath); // Hapus file tak dikenali
+                }
+            } catch (error) {
+                // Jika gagal, kembalikan file ke folder tmp
+                if (finalPath && fs.existsSync(finalPath)) {
+                    fs.renameSync(finalPath, filePath);
+                }
+                failedFiles.push({
+                    file: file,
+                    error: error.message
+                });
+                console.error(`Error processing file ${file}:`, error);
             }
         }
 
@@ -724,7 +790,8 @@ exports.uploadSalarySlipZip = async (req, res) => {
         res.json({
             message: 'ZIP processed',
             matched,
-            unmatchedFiles
+            unmatchedFiles,
+            failedFiles
         });
 
     } catch (error) {
@@ -732,7 +799,6 @@ exports.uploadSalarySlipZip = async (req, res) => {
         res.status(500).json({ message: 'Internal Server Error', error });
     }
 };
-
 exports.uploadExcelEmployees = async (req, res) => {
   try {
     if (!req.file) {
