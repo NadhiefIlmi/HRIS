@@ -501,7 +501,7 @@ function EmploymentInfoTab({ formData, handleChange, handleLeaveInfoChange }) {
 
         <div>
           <label className="block mb-1 text-sm font-medium text-gray-700">
-            Department
+            Department <span className="text-[#a8441f]">*</span>
           </label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -511,6 +511,7 @@ function EmploymentInfoTab({ formData, handleChange, handleLeaveInfoChange }) {
               name="department"
               value={formData.department}
               onChange={handleChange}
+              required
               className="w-full pl-10 pr-4 py-3 bg-white/80 border border-gray-200/70 rounded-xl focus:ring-2 focus:ring-[#662b1f]/50 focus:border-transparent outline-none transition-all duration-200 shadow-sm hover:shadow-md"
             >
               <option value="">Select Department</option>

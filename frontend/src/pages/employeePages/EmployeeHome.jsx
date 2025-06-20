@@ -938,13 +938,7 @@ useEffect(() => {
                 gradient="from-emerald-500 to-teal-600"
               />
              
-              <QuickAccessCard
-                icon={Briefcase}
-                title="Attendance"
-                description="Track your attendance history and patterns"
-                link="/employee/attendance"
-                gradient="from-cyan-500 to-blue-600"
-              />
+              
              
             </div>
           </motion.div>

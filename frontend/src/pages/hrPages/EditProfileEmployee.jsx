@@ -979,34 +979,7 @@ function EditProfileEmployee() {
                   />
                 </div>
 
-                <div className="group">
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Used Annual Leave (Days)
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="365"
-                    value={formData.leaveInfo.usedAnnualLeave}
-                    onChange={(e) =>
-                      handleLeaveInfoChange("usedAnnualLeave", e.target.value)
-                    }
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#662b1f] focus:border-transparent transition-all group-hover:border-gray-400"
-                  />
-                </div>
-
-                {/* Remaining Annual Leave (Read Only) */}
-                <div className="group">
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Remaining Annual Leave (Days)
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.leaveInfo.remainingAnnualLeave}
-                    readOnly
-                    className="w-full p-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 cursor-not-allowed"
-                  />
-                </div>
+                
               </div>
             </div>
 

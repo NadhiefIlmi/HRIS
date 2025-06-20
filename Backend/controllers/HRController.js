@@ -115,6 +115,16 @@ exports.deleteEmployee = async (req, res) => {
     }
 };
 
+exports.deleteAllEmployees = async (req, res) => {
+    try {
+        const result = await Employee.deleteMany({});
+        res.json({ message: `All employees deleted successfully. Count: ${result.deletedCount}` });
+    } catch (err) {
+        console.error("[Delete All Employees] Error:", err);
+        res.status(500).json({ message: 'Internal Server Error' });
+    }
+};
+
 // **HR Bisa Melihat Semua Karyawan**
 exports.getAllHR = async (req, res) => {
     const hr = await HR.find({}, { password: 0 });
@@ -873,3 +883,23 @@ function formatDate(excelDate) {
   const date = new Date((excelDate - 25569) * 86400 * 1000);
   return date.toISOString().split('T')[0];
 }
+
+exports.getEmployeeAttendanceHistory = async (req, res) => {
+  try {
+    const employeeId = req.params.id;
+    const employee = await Employee.findById(employeeId).populate('attendanceRecords');
+    if (!employee) {
+      return res.status(404).json({ message: 'Employee not found' });
+    }
+    // Return attendance records sorted by checkIn descending
+    const sortedRecords = employee.attendanceRecords.sort((a, b) => {
+      const dateA = new Date(a.checkIn);
+      const dateB = new Date(b.checkIn);
+      return dateB - dateA;
+    });
+    res.json(sortedRecords);
+  } catch (error) {
+    console.error('Error fetching attendance history:', error);
+    res.status(500).json({ message: 'Internal Server Error' });
+  }
+};

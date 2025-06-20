@@ -380,7 +380,7 @@ function EmployeeDetail() {
               <div className="flex items-center mb-4">
                 <div className="w-2 h-8 bg-gradient-to-b from-yellow-400 to-orange-400 rounded-full mr-4"></div>
                 <h2 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-white to-yellow-100 bg-clip-text text-transparent">
-                  {employee.employee_name || employee.username}
+                  {employee.username}
                 </h2>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -452,8 +452,16 @@ function EmployeeDetail() {
                     Personal Information
                   </h3>
                 </div>
+
+                
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <InfoCard 
+                    icon={<FaUser className="text-[#662b1f]" size={20} />}
+                    title="Username"
+                    value={employee.username || "—"}
+                  />
+
                   <InfoCard 
                     icon={<FaUser className="text-[#662b1f]" size={20} />}
                     title="Full Name"
@@ -680,20 +688,35 @@ function EmployeeDetail() {
                           (attendancePage - 1) * attendancePageSize,
                           attendancePage * attendancePageSize
                         )
-                        .map((record, index) => (
-                          <tr key={index}>
-                            <td className="py-4 px-4 text-sm text-gray-900">
-                              {formatDate(record.checkIn, false)}
-                            </td>
-                            <td className="py-4 px-4 text-sm text-gray-900">
-                              {record.checkIn ? new Date(record.checkIn).toLocaleTimeString() : "—"}
-                            </td>
-                            <td className="py-4 px-4 text-sm text-gray-900">
-                              {record.checkOut ? new Date(record.checkOut).toLocaleTimeString() : "—"}
-                            </td>
-                           
-                          </tr>
-                        ))}
+                        .map((record, index) => {
+                          // Only show record if checkIn or checkOut is within last 24 hours
+                          const now = new Date();
+                          const checkInDate = record.checkIn ? new Date(record.checkIn) : null;
+                          const checkOutDate = record.checkOut ? new Date(record.checkOut) : null;
+                          const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+                          const isRecent =
+                            (checkInDate && checkInDate >= twentyFourHoursAgo) ||
+                            (checkOutDate && checkOutDate >= twentyFourHoursAgo);
+
+                          if (!isRecent) {
+                            return null;
+                          }
+
+                          return (
+                            <tr key={index}>
+                              <td className="py-4 px-4 text-sm text-gray-900">
+                                {formatDate(record.checkIn, false)}
+                              </td>
+                              <td className="py-4 px-4 text-sm text-gray-900">
+                                {record.checkIn ? new Date(record.checkIn).toLocaleTimeString() : "—"}
+                              </td>
+                              <td className="py-4 px-4 text-sm text-gray-900">
+                                {record.checkOut ? new Date(record.checkOut).toLocaleTimeString() : "—"}
+                              </td>
+                            </tr>
+                          );
+                        })}
                       {(!employee.attendanceRecords || employee.attendanceRecords.length === 0) && (
                         <tr>
                           <td colSpan="4" className="py-4 px-4 text-sm text-center text-gray-500">

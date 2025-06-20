@@ -14,6 +14,7 @@ router.post('/logout', authenticateHR, hrController.logoutHR);
 router.get('/me', authenticateHR, checkBlacklistedToken, hrController.personalDataHR);
 router.get('/employee', authenticateHR, checkBlacklistedToken, hrController.getAllEmployee);
 router.delete('/deleteEmployee/:id', authenticateHR, checkBlacklistedToken, hrController.deleteEmployee);
+router.delete('/deleteAllEmployees', authenticateHR, checkBlacklistedToken, hrController.deleteAllEmployees);
 router.get('/', authenticateHR, checkBlacklistedToken, hrController.getAllHR);
 router.put('/edit', authenticateHR, checkBlacklistedToken, uploadProfilePhoto.single('file'), hrController.editProfileHR);
 router.put('/approve-leave/:id', authenticateHR, hrController.leaveApproval);
@@ -35,5 +36,7 @@ router.delete('/announcements/:id', authenticateHR, checkBlacklistedToken, hrCon
 
 router.post('/upload-employee-excel', authenticateHR, uploadEmployeeExcel.single('file'), hrController.uploadExcelEmployees);
 router.post('/upload-zip-slip', authenticateHR, checkBlacklistedToken, uploadSalarySlipZip.single('zipfile'), hrController.uploadSalarySlipZip);
+
+router.get('/attendance-history/:id', authenticateHR, checkBlacklistedToken, hrController.getEmployeeAttendanceHistory);
 
 module.exports = router;

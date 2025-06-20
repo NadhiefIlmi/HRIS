@@ -15,7 +15,8 @@ import AddEmployee from './pages/hrPages/AddEmployee';
 import ChangePasswordHR from './pages/hrPages/ChangePasswordHR';
 import LeaveRequestsPage from './pages/hrPages/LeaveRequestsPage';
 import EditProfileEmployee from './pages/hrPages/EditProfileEmployee';
-import AddExcell from './pages/hrPages/Addexcell';
+import AddExcell from './pages/hrPages/AddExcell';
+import HrAttendanceHistory from './pages/hrPages/HrAttendanceHistory';
 
 import EmployeeHome from './pages/employeePages/EmployeeHome';
 import ProfileEmployee from './pages/employeePages/ProfileEmployee';
@@ -120,6 +121,14 @@ function App() {
           element={
             <HRLayout>
               <EmployeeDetail />
+            </HRLayout>
+          } 
+        />
+        <Route 
+          path="/attendance/:id" 
+          element={
+            <HRLayout>
+              <HrAttendanceHistory />
             </HRLayout>
           } 
         />

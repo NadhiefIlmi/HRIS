@@ -126,29 +126,55 @@ function AddExcel() {
 
             {/* Upload Section */}
             <div className="bg-gray-50/60 rounded-xl p-6 mb-8 border border-gray-200/50">
-              <div className="flex flex-col items-center justify-center py-8 px-4 border-2 border-dashed border-gray-300 rounded-lg bg-white/50">
-                <UploadCloud className="text-[#662b1f] mb-4" size={48} />
-                <p className="text-lg font-medium text-gray-700 mb-2">
-                  {fileName || "Select Excel file to upload"}
-                </p>
-                <p className="text-sm text-gray-500 mb-4">
-                  {fileName
-                    ? "Ready to upload"
-                    : "Only .xlsx or .xls files are accepted"}
-                </p>
+            <div
+              className="flex flex-col items-center justify-center py-8 px-4 border-2 border-dashed border-gray-300 rounded-lg bg-white/50"
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                e.dataTransfer.dropEffect = "copy";
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                  const file = e.dataTransfer.files[0];
+                  const allowedExtensions = [".xlsx", ".xls"];
+                  const fileExtension = file.name
+                    .substring(file.name.lastIndexOf("."))
+                    .toLowerCase();
+                  if (allowedExtensions.includes(fileExtension)) {
+                    setFile(file);
+                    setFileName(file.name);
+                    setUploadStatus({ success: null, message: "" });
+                    e.dataTransfer.clearData();
+                  } else {
+                    alert("Please drop a valid Excel file (.xlsx or .xls).");
+                  }
+                }
+              }}
+            >
+              <UploadCloud className="text-[#662b1f] mb-4" size={48} />
+              <p className="text-lg font-medium text-gray-700 mb-2">
+                {fileName || "Select Excel file to upload"}
+              </p>
+              <p className="text-sm text-gray-500 mb-4">
+                {fileName
+                  ? "Ready to upload"
+                  : "Only .xlsx or .xls files are accepted"}
+              </p>
 
-                <label className="cursor-pointer">
-                  <span className="px-6 py-3 bg-gradient-to-r from-[#662b1f] to-[#8b3a1f] text-white rounded-lg font-medium shadow-md hover:shadow-lg transition-all duration-200 inline-flex items-center">
-                    <UploadCloud className="mr-2" size={18} />
-                    {fileName ? "Change File" : "Browse Files"}
-                    <input
-                      type="file"
-                      className="hidden"
-                      accept=".xlsx,.xls"
-                      onChange={handleFileChange}
-                    />
-                  </span>
-                </label>
+              <label className="cursor-pointer">
+                <span className="px-6 py-3 bg-gradient-to-r from-[#662b1f] to-[#8b3a1f] text-white rounded-lg font-medium shadow-md hover:shadow-lg transition-all duration-200 inline-flex items-center">
+                  <UploadCloud className="mr-2" size={18} />
+                  {fileName ? "Change File" : "Browse Files"}
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept=".xlsx,.xls"
+                    onChange={handleFileChange}
+                  />
+                </span>
+              </label>
 
                 {fileName && (
                   <button
@@ -214,7 +240,7 @@ function AddExcel() {
                     className="inline-flex items-center text-sm text-[#662b1f] hover:text-[#8b3a1f] font-medium"
                   >
                     <DownloadCloud className="mr-2" size={16} />
-                    Download template file  (Masih Belum Bisa)
+                    Download template file
                   </a>
                 </div>
               </div>

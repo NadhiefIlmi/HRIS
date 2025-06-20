@@ -12,6 +12,10 @@ import {
   Plus,
   Sparkles,
   Clock,
+  ChevronDown,
+  ChevronUp,
+  UserPlus,
+  FileSpreadsheet,
 } from "lucide-react";
 import ChateraiseLogo from "../assets/Chateraise2.png";
 import API from "../api/api";
@@ -49,6 +53,90 @@ const NavLink = ({ to, icon: Icon, label, badgeCount }) => {
         <div className="ml-auto w-2 h-2 bg-white/30 rounded-full"></div>
       )}
     </Link>
+  );
+};
+
+const DropdownMenu = () => {
+  const [isOpen, setIsOpen] = useState(false);
+  const location = useLocation();
+  
+  // Check if any of the dropdown items are active
+  const isEmployeesActive = location.pathname === "/employees" || 
+                          location.pathname.startsWith("/employees/");
+  
+  // Toggle dropdown
+  const toggleDropdown = () => {
+    setIsOpen(!isOpen);
+  };
+
+  return (
+    <div className="relative">
+      <button
+        onClick={toggleDropdown}
+        className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-300 group ${
+          isEmployeesActive
+            ? "bg-gradient-to-r from-[#662b1f] to-[#8a3b2d] text-white font-semibold shadow-lg"
+            : "text-gray-700 hover:bg-gradient-to-r hover:from-[#f5e8e0] hover:to-orange-50/50 hover:text-[#662b1f] hover:shadow-md"
+        }`}
+      >
+        <div className="flex items-center gap-3">
+          <Users
+            size={18}
+            strokeWidth={isEmployeesActive ? 2.5 : 2}
+            className={isEmployeesActive ? "text-white" : "text-green-600"}
+          />
+          <span className="text-sm whitespace-nowrap font-medium">Employees</span>
+        </div>
+        {isOpen ? (
+          <ChevronUp size={16} className={isEmployeesActive ? "text-white" : "text-gray-500"} />
+        ) : (
+          <ChevronDown size={16} className={isEmployeesActive ? "text-white" : "text-gray-500"} />
+        )}
+      </button>
+
+      {/* Dropdown Content */}
+      <div
+        className={`overflow-hidden transition-all duration-300 ease-in-out ${
+          isOpen ? "max-h-40 opacity-100" : "max-h-0 opacity-0"
+        }`}
+      >
+        <div className="pl-4 pt-2 space-y-1">
+          <Link
+            to="/employees"
+            className={`flex items-center gap-3 px-4 py-2 rounded-lg text-sm transition-all duration-200 ${
+              location.pathname === "/employees"
+                ? "bg-gradient-to-r from-[#662b1f]/10 to-[#8a3b2d]/10 text-[#662b1f] font-medium"
+                : "text-gray-600 hover:bg-gradient-to-r hover:from-[#f5e8e0]/50 hover:to-orange-50/30 hover:text-[#662b1f]"
+            }`}
+          >
+            <Users size={16} className="text-green-600" />
+            <span>All Employees</span>
+          </Link>
+          <Link
+            to="/employees/add"
+            className={`flex items-center gap-3 px-4 py-2 rounded-lg text-sm transition-all duration-200 ${
+              location.pathname === "/employees/add"
+                ? "bg-gradient-to-r from-[#662b1f]/10 to-[#8a3b2d]/10 text-[#662b1f] font-medium"
+                : "text-gray-600 hover:bg-gradient-to-r hover:from-[#f5e8e0]/50 hover:to-orange-50/30 hover:text-[#662b1f]"
+            }`}
+          >
+            <UserPlus size={16} className="text-yellow-500" />
+            <span>Add Employee</span>
+          </Link>
+          <Link
+            to="/employees/add-excell"
+            className={`flex items-center gap-3 px-4 py-2 rounded-lg text-sm transition-all duration-200 ${
+              location.pathname === "/employees/add-excel"
+                ? "bg-gradient-to-r from-[#662b1f]/10 to-[#8a3b2d]/10 text-[#662b1f] font-medium"
+                : "text-gray-600 hover:bg-gradient-to-r hover:from-[#f5e8e0]/50 hover:to-orange-50/30 hover:text-[#662b1f]"
+            }`}
+          >
+            <FileSpreadsheet size={16} className="text-blue-600" />
+            <span>Add from Excel</span>
+          </Link>
+        </div>
+      </div>
+    </div>
   );
 };
 
@@ -286,37 +374,8 @@ function HRLayout({ children }) {
           />
           <NavLink to="/dashboard" icon={LayoutDashboard} label="Dashboard" />
 
-          <div className="flex flex-col gap-2">
-            <NavLink to="/employees" icon={Users} label="Employees" />
-            {/* Enhanced Add Employee link */}
-            <Link
-              to="/employees/add"
-              className="ml-6 flex items-center gap-2 px-4 py-2 rounded-xl text-[#662b1f] hover:bg-gradient-to-r hover:from-green-50 hover:to-emerald-50/50 transition-all duration-200 group hover:shadow-md hover:scale-105 border border-transparent hover:border-green-200/50"
-            >
-              <div className="w-5 h-5 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-full flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform duration-200">
-                <Plus size={12} strokeWidth={3} />
-              </div>
-              <span className="text-xs font-semibold">Add Employee</span>
-            </Link>
-
-            <Link
-              to="/employees/add-excell"
-              className="ml-6 flex items-center gap-2 px-4 py-2 rounded-xl text-[#662b1f] hover:bg-gradient-to-r hover:from-green-50 hover:to-emerald-50/50 transition-all duration-200 group hover:shadow-md hover:scale-105 border border-transparent hover:border-green-200/50"
-            >
-              <div className="w-5 h-5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full flex items-center justify-center shadow-sm group-hover:scale-110 group-hover:rotate-3 transition-transform duration-200">
-                <svg
-                  className="w-3.5 h-3.5"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
-                </svg>
-              </div>
-              <span className="text-xs font-semibold">
-                Add Employee From Excell
-              </span>
-            </Link>
-          </div>
+          {/* Replaced the old Employees section with the new DropdownMenu */}
+          <DropdownMenu />
 
           <NavLink
             to="/leave-requests"
