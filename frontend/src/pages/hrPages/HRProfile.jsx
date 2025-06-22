@@ -130,7 +130,7 @@ function HRProfile() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-blue-50/30 to-indigo-50/40">
+    <div className="min-h-screen  from-slate-50 via-blue-50/30 to-indigo-50/40">
       {/* Background decorative elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-[#662b1f]/5 to-orange-200/10 rounded-full blur-3xl"></div>

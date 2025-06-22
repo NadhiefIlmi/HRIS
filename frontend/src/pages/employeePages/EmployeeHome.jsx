@@ -25,6 +25,8 @@ import {
 import { motion } from "framer-motion";
 import API from "../../api/api";
 import useDocumentTitle from "../../hooks/useDocumentTitle";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 function EmployeeHome() {
   // Employee data and attendance state
@@ -34,7 +36,7 @@ function EmployeeHome() {
   const [checkOutLoading, setCheckOutLoading] = useState(false);
   const [attendanceStatus, setAttendanceStatus] = useState(null);
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [leaveInfo, setLeaveInfo] = useState(null); // Add this line
+  const [leaveInfo, setLeaveInfo] = useState(null);
   const [autoCheckoutDone, setAutoCheckoutDone] = useState(false);
   const [showReminder, setShowReminder] = useState(false);
 
@@ -49,6 +51,35 @@ function EmployeeHome() {
 
   useDocumentTitle("Employee Home");
 
+  // Initialize toast notifications
+  const showNotification = (title, message, type = "info") => {
+    const toastOptions = {
+      position: "top-right",
+      autoClose: 5000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+      progress: undefined,
+    };
+
+    switch (type) {
+      case "success":
+        toast.success(`${title}: ${message}`, toastOptions);
+        break;
+      case "error":
+        toast.error(`${title}: ${message}`, toastOptions);
+        break;
+      case "warning":
+        toast.warn(`${title}: ${message}`, toastOptions);
+        break;
+      case "info":
+      default:
+        toast.info(`${title}: ${message}`, toastOptions);
+        break;
+    }
+  };
+
   // Fetch employee profile
   const fetchProfile = async () => {
     try {
@@ -57,6 +88,11 @@ function EmployeeHome() {
       setEmployee(res.data);
     } catch (err) {
       console.error("Failed to fetch profile:", err);
+      showNotification(
+        "Error",
+        err.response?.data?.message || "Failed to load profile",
+        "error"
+      );
     } finally {
       setLoading(false);
     }
@@ -69,19 +105,24 @@ function EmployeeHome() {
       setAttendanceStatus(res.data);
     } catch (err) {
       console.error("Failed to get attendance status:", err);
+      showNotification(
+        "Error",
+        err.response?.data?.message || "Failed to load attendance status",
+        "error"
+      );
     }
   };
 
-  // Add this inside the EmployeeHome component, along with other fetch functions
-const fetchLeaveInfo = async () => {
-  try {
-    const res = await API.get("/api/employee/leave-info");
-    setLeaveInfo(res.data);
-  } catch (err) {
-    console.error("Failed to fetch leave info:", err);
-    showNotification("Error", "Failed to load leave information", "error");
-  }
-};
+  // Fetch leave info
+  const fetchLeaveInfo = async () => {
+    try {
+      const res = await API.get("/api/employee/leave-info");
+      setLeaveInfo(res.data);
+    } catch (err) {
+      console.error("Failed to fetch leave info:", err);
+      showNotification("Error", "Failed to load leave information", "error");
+    }
+  };
 
   // Check-in handler
   const handleCheckIn = async () => {
@@ -118,19 +159,25 @@ const fetchLeaveInfo = async () => {
       setCheckOutLoading(false);
     }
   };
+
   // Auto-checkout
   const handleAutoCheckOut = async () => {
     try {
       await API.post("/api/employee/check-out");
       fetchAttendanceStatus();
       showNotification(
-        "Auto Check Out", 
-        "You have been automatically checked out at 5 PM", 
+        "Auto Check Out",
+        "You have been automatically checked out at 5 PM",
         "info"
       );
       setAutoCheckoutDone(true);
     } catch (err) {
       console.error("Failed to auto check out:", err);
+      showNotification(
+        "Error",
+        "Failed to perform automatic check out",
+        "error"
+      );
     }
   };
 
@@ -143,14 +190,24 @@ const fetchLeaveInfo = async () => {
       const currentSecond = now.getSeconds();
 
       // Check is it already 5 PM (17:00)
-      if (currentHour >= 17 && currentMinutes >= 0 && currentSecond == 0 && !autoCheckoutDone) {
+      if (
+        currentHour >= 17 &&
+        currentMinutes >= 0 &&
+        currentSecond == 0 &&
+        !autoCheckoutDone
+      ) {
         if (attendanceStatus?.checkIn && !attendanceStatus?.checkOut) {
           handleAutoCheckOut();
         }
       }
-      
+
       // Give warning to employee to check out before 5 PM (16:50)
-      if (currentHour === 16 && currentMinutes >= 50 && currentSecond == 0 && !attendanceStatus?.checkOut) {
+      if (
+        currentHour === 16 &&
+        currentMinutes >= 50 &&
+        currentSecond == 0 &&
+        !attendanceStatus?.checkOut
+      ) {
         setShowReminder(true);
       } else {
         setShowReminder(false);
@@ -159,13 +216,13 @@ const fetchLeaveInfo = async () => {
 
     // Check every minute
     const interval = setInterval(checkAutoCheckout, 60000);
-    
+
     checkAutoCheckout();
-    
+
     return () => clearInterval(interval);
   }, [attendanceStatus, autoCheckoutDone]);
 
-  // RCheck out status reset every midnight
+  // Check out status reset every midnight
   useEffect(() => {
     const resetAtMidnight = () => {
       const now = new Date();
@@ -303,29 +360,22 @@ const fetchLeaveInfo = async () => {
     };
   };
 
-useEffect(() => {
-  const interval = setInterval(() => {
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchAttendanceStatus();
+      fetchLeaveInfo();
+    }, 300000); // Refresh every 5 minutes
+
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    fetchProfile();
     fetchAttendanceStatus();
-    fetchLeaveInfo(); // Add this to refresh leave info periodically
-  }, 300000); // Refresh every 5 minutes
-
-  return () => clearInterval(interval);
-}, []);
-
-
-  // Show notification
-  const showNotification = (title, message, type = "info") => {
-    alert(`${title}: ${message}`);
-  };
-
-  // Update the initialization useEffect
-useEffect(() => {
-  fetchProfile();
-  fetchAttendanceStatus();
-  fetchLeaveInfo(); // Add this line
-  const interval = setInterval(() => setCurrentTime(new Date()), 60000);
-  return () => clearInterval(interval);
-}, []);
+    fetchLeaveInfo();
+    const interval = setInterval(() => setCurrentTime(new Date()), 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Update calendar when month/year changes
   useEffect(() => {
@@ -511,7 +561,7 @@ useEffect(() => {
           {daysInMonth.map((day, index) => (
             <div
               key={index}
-              className={`p-3 text-center text-sm rounded-xl cursor-pointer transition-all duration-200 relative ${
+              className={`p-3 text-center text-sm rounded-xl cursor-pointer transition-all duration-200 ${
                 day.isCurrentDay
                   ? "bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-bold shadow-lg transform scale-105"
                   : day.isWeekend
@@ -661,7 +711,32 @@ useEffect(() => {
   const GreetingIcon = greeting.icon;
 
   return (
-    <div className="min-h-screen  from-slate-50 via-blue-50/30 to-indigo-50/50 relative overflow-hidden">
+    <div className="min-h-screen from-slate-50 via-blue-50/30 to-indigo-50/50 relative overflow-hidden">
+      {/* Toast container */}
+      <div className="fixed top-4 right-4 z-50">
+        {showReminder && (
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            className="mb-4"
+          >
+            <div className="bg-yellow-500 text-white px-4 py-3 rounded-lg shadow-lg flex items-center">
+              <Clock className="mr-2" size={20} />
+              <span className="text-sm">
+                Don't forget to check out before 5 PM!
+              </span>
+              <button
+                className="ml-4 text-yellow-200 hover:text-white"
+                onClick={() => setShowReminder(false)}
+              >
+                <X size={16} />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </div>
+
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-96 h-96 bg-gradient-to-br from-violet-400/20 via-purple-500/15 to-indigo-600/20 rounded-full blur-3xl animate-pulse"></div>
         <div
@@ -692,26 +767,6 @@ useEffect(() => {
         </div>
       </div>
 
-        {showReminder && (
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            className="fixed top-4 right-4 z-50"
-          >
-            <div className="bg-yellow-500 text-white px-4 py-3 rounded-lg shadow-lg flex items-center">
-              <Clock className="mr-2" size={20} />
-              <span className="text-sm">Don't forget to check out before 5 PM!</span>
-              <button 
-                className="ml-4 text-yellow-200 hover:text-white"
-                onClick={() => setShowReminder(false)}
-              >
-                <X size={16} />
-              </button>
-            </div>
-          </motion.div>
-        )}
-
       <motion.div
         initial="hidden"
         animate="visible"
@@ -735,11 +790,10 @@ useEffect(() => {
                 <p className="text-3xl font-bold text-gray-800 mb-1">
                   {leaveInfo?.totalAnnualLeave ?? 0} days
                 </p>
-                
               </div>
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
-                  <ClipboardList className="text-white" size={22} />
-                </div>
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                <ClipboardList className="text-white" size={22} />
+              </div>
             </div>
           </motion.div>
 
@@ -756,11 +810,10 @@ useEffect(() => {
                 <p className="text-3xl font-bold text-gray-800 mb-1">
                   {leaveInfo?.usedAnnualLeave ?? 0} days
                 </p>
-               
               </div>
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
-                  <Check className="text-white" size={22} />
-                </div>
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                <Check className="text-white" size={22} />
+              </div>
             </div>
           </motion.div>
 
@@ -783,11 +836,10 @@ useEffect(() => {
                 >
                   {leaveInfo?.remainingAnnualLeave ?? 0} days
                 </p>
-               
               </div>
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-green-500 to-teal-500 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
-                  <Target className="text-white" size={22} />
-                </div>
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-green-500 to-teal-500 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300">
+                <Target className="text-white" size={22} />
+              </div>
             </div>
           </motion.div>
         </motion.div>
@@ -937,9 +989,6 @@ useEffect(() => {
                 link="/employee/salary-slip"
                 gradient="from-emerald-500 to-teal-600"
               />
-             
-              
-             
             </div>
           </motion.div>
         ) : (

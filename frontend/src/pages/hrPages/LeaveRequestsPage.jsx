@@ -2,14 +2,52 @@ import React, { useEffect, useState } from 'react';
 import API from '../../api/api';
 import { Calendar, User, Briefcase, Clock, CheckCircle, XCircle, AlertCircle, Loader2 } from 'lucide-react';
 import useDocumentTitle from '../../hooks/useDocumentTitle';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 function LeaveRequestsPage({ updatePendingLeavesCount }) {
   const [leaveRequests, setLeaveRequests] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [notification, setNotification] = useState({ type: null, message: null });
   const [processingId, setProcessingId] = useState(null);
 
   useDocumentTitle("Leave Requests");
+
+  // Initialize toast configuration
+  const showSuccessToast = (message) => {
+    toast.success(message, {
+      position: "top-right",
+      autoClose: 3000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+      progress: undefined,
+      theme: "colored",
+      style: {
+        backgroundColor: '#f0fdf4',
+        color: '#166534',
+        borderLeft: '4px solid #22c55e'
+      }
+    });
+  };
+
+  const showErrorToast = (message) => {
+    toast.error(message, {
+      position: "top-right",
+      autoClose: 5000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+      progress: undefined,
+      theme: "colored",
+      style: {
+        backgroundColor: '#fef2f2',
+        color: '#b91c1c',
+        borderLeft: '4px solid #ef4444'
+      }
+    });
+  };
 
   const fetchLeaveRequests = async () => {
     try {
@@ -27,16 +65,19 @@ function LeaveRequestsPage({ updatePendingLeavesCount }) {
       return res.data.pendingRequests;
     } catch (err) {
       console.error('Error fetching leave requests:', err);
-      showNotification('error', 'Failed to load leave requests');
+      
+      let errorMessage = 'Failed to load leave requests';
+      if (err.response?.status === 401) {
+        errorMessage = 'Session expired. Please login again.';
+      } else if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      }
+      
+      showErrorToast(errorMessage);
       return [];
     } finally {
       setLoading(false);
     }
-  };
-
-  const showNotification = (type, message) => {
-    setNotification({ type, message });
-    setTimeout(() => setNotification({ type: null, message: null }), 4000);
   };
 
   const handleDecision = async (id, decision) => {
@@ -49,14 +90,23 @@ function LeaveRequestsPage({ updatePendingLeavesCount }) {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      showNotification('success', `Leave request ${decision} successfully`);
+      const action = decision === 'approved' ? 'approved' : 'rejected';
+      showSuccessToast(`Leave request ${action} successfully`);
       
       // Fetch updated requests and update count
       const updatedRequests = await fetchLeaveRequests();
       
     } catch (err) {
       console.error('Error updating leave request:', err.response?.data || err.message);
-      showNotification('error', 'Failed to process leave request');
+      
+      let errorMessage = 'Failed to process leave request';
+      if (err.response?.status === 401) {
+        errorMessage = 'Session expired. Please login again.';
+      } else if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      }
+      
+      showErrorToast(errorMessage);
     } finally {
       setProcessingId(null);
     }
@@ -76,11 +126,24 @@ function LeaveRequestsPage({ updatePendingLeavesCount }) {
     return types[type.toLowerCase()] || { bg: 'bg-[#f5e8e0]', text: 'text-[#662b1f]' };
   };
 
-  const calculateDuration = (startDate, endDate) => {
+  // Calculate working days (Mon-Fri) between startDate and endDate inclusive
+  const calculateWorkingDays = (startDate, endDate) => {
     const start = new Date(startDate);
     const end = new Date(endDate);
-    const diffDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
-    return diffDays;
+    let count = 0;
+    let current = new Date(start);
+    while (current <= end) {
+      const day = current.getDay();
+      if (day !== 0 && day !== 6) { // 0 = Sunday, 6 = Saturday
+        count++;
+      }
+      current.setDate(current.getDate() + 1);
+    }
+    return count;
+  };
+
+  const calculateDuration = (startDate, endDate) => {
+    return calculateWorkingDays(startDate, endDate);
   };
 
   const formatDate = (dateString) => {
@@ -133,24 +196,6 @@ function LeaveRequestsPage({ updatePendingLeavesCount }) {
             </p>
           </div>
         </div>
-
-        {/* Notification */}
-        {notification.message && (
-          <div className={`mb-6 p-4 rounded-lg border-l-4 ${
-            notification.type === 'success' 
-              ? 'bg-green-50 border-green-400 text-green-700' 
-              : 'bg-red-50 border-red-400 text-red-700'
-          } shadow-sm`}>
-            <div className="flex items-center">
-              {notification.type === 'success' ? (
-                <CheckCircle className="w-5 h-5 mr-2" />
-              ) : (
-                <AlertCircle className="w-5 h-5 mr-2" />
-              )}
-              {notification.message}
-            </div>
-          </div>
-        )}
 
         {/* Leave Requests List */}
         {leaveRequests.length === 0 ? (

@@ -14,6 +14,8 @@ import {
 import API from "../../api/api";
 import useDocumentTitle from "../../hooks/useDocumentTitle";
 import { motion } from "framer-motion";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 export default function LeavePermission() {
   const [leaveRequests, setLeaveRequests] = useState([]);
@@ -29,6 +31,7 @@ export default function LeavePermission() {
   const [loading, setLoading] = useState(false);
   const [activeFilter, setActiveFilter] = useState("all");
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [remainingAnnualLeave, setRemainingAnnualLeave] = useState(null);
   const token = localStorage.getItem("token");
 
   useDocumentTitle("Leaves Permission");
@@ -73,6 +76,23 @@ export default function LeavePermission() {
   }, []);
 
   useEffect(() => {
+    // Fetch leave info to get remainingAnnualLeave
+    const fetchLeaveInfo = async () => {
+      try {
+        const response = await API.get("/api/employee/leave-info", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        console.log("Fetched remainingAnnualLeave:", response.data.remainingAnnualLeave);
+        setRemainingAnnualLeave(response.data.remainingAnnualLeave);
+      } catch (err) {
+        console.error("Failed to fetch leave info", err);
+      }
+    };
+
+    fetchLeaveInfo();
+  }, [token]);
+
+  useEffect(() => {
     if (activeFilter === "all") {
       setFilteredRequests(leaveRequests);
     } else {
@@ -102,7 +122,7 @@ export default function LeavePermission() {
     e.preventDefault();
     setLoading(true);
     if (!form.type || !form.startDate || !form.endDate) {
-      setError("Please fill in all required fields");
+      toast.error("Please fill in all required fields", { position: "top-right" });
       setLoading(false);
       return;
     }
@@ -113,25 +133,36 @@ export default function LeavePermission() {
     today.setHours(0, 0, 0, 0);
 
     if (startDate < today) {
-      setError("Start date cannot be in the past");
+      toast.error("Start date cannot be in the past", { position: "top-right" });
       setLoading(false);
       return;
     }
 
     if (endDate < startDate) {
-      setError("End date cannot be before start date");
+      toast.error("End date cannot be before start date", { position: "top-right" });
       setLoading(false);
       return;
     }
 
     const totalDays = calculateTotalDays(form.startDate, form.endDate);
+    console.log("Calculated totalDays:", totalDays);
+    console.log("Current remainingAnnualLeave:", remainingAnnualLeave);
+
+    // Client-side validation for leave quota for all leave types
+    const leaveTypesToCheck = ['sick', 'annual', 'personal', 'maternity', 'other'];
+    if (leaveTypesToCheck.includes(form.type) && remainingAnnualLeave !== null && totalDays > remainingAnnualLeave) {
+      toast.error("Your leave request exceeds your remaining annual leave quota.", { position: "top-right" });
+      setLoading(false);
+      return;
+    }
+
     console.log(`Submitting leave request for ${totalDays} days`);
 
     try {
       const response = await API.post("/api/employee/leave-request", form, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setMessage(response.data.message);
+      toast.success(response.data.message, { position: "top-right" });
       setError("");
       fetchLeaveRequests();
       setForm({ type: "", startDate: "", endDate: "", reason: "" });
@@ -141,30 +172,54 @@ export default function LeavePermission() {
         setMessage("");
       }, 3000);
     } catch (err) {
-      setError(err.response?.data?.message || "Error submitting leave request");
+      toast.error(err.response?.data?.message || "Error submitting leave request", { position: "top-right" });
       setMessage("");
-
-      setTimeout(() => {
-        setError("");
-      }, 3000);
     } finally {
       setLoading(false);
     }
   };
 
   const handleDeleteLeaveRequest = async (id) => {
-    const confirmDelete = window.confirm(
-      "Are you sure you want to delete this leave request?"
+    // Show toast confirmation instead of window.confirm
+    const confirmId = `confirm-delete-${id}`;
+    const toastId = toast.info(
+      <div>
+        <p>Are you sure you want to delete this leave request?</p>
+        <div className="mt-2 flex justify-end gap-2">
+          <button
+            onClick={() => {
+              toast.dismiss(toastId);
+              deleteLeaveRequest(id);
+            }}
+            className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700"
+          >
+            Yes
+          </button>
+          <button
+            onClick={() => toast.dismiss(toastId)}
+            className="bg-gray-300 text-gray-700 px-3 py-1 rounded hover:bg-gray-400"
+          >
+            No
+          </button>
+        </div>
+      </div>,
+      {
+        autoClose: false,
+        closeOnClick: false,
+        closeButton: false,
+        draggable: false,
+      }
     );
-    if (!confirmDelete) return;
+  };
 
+  const deleteLeaveRequest = async (id) => {
     setLoading(true);
     try {
       await API.delete(`/api/employee/leave-request/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setLeaveRequests(leaveRequests.filter((request) => request._id !== id));
-      setMessage("Leave request deleted successfully!");
+      toast.success("Leave request deleted successfully!", { position: "top-right" });
 
       setTimeout(() => {
         setMessage("");
@@ -221,18 +276,29 @@ export default function LeavePermission() {
     }
   };
 
-  const calculateDuration = (startDate, endDate) => {
+  // Calculate working days (Mon-Fri) between startDate and endDate inclusive
+  const calculateWorkingDays = (startDate, endDate) => {
     const start = new Date(startDate);
     const end = new Date(endDate);
-    const diffTime = Math.abs(end - start);
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-    return `${diffDays} day${diffDays > 1 ? "s" : ""}`;
+    let count = 0;
+    let current = new Date(start);
+    while (current <= end) {
+      const day = current.getDay();
+      if (day !== 0 && day !== 6) { // 0 = Sunday, 6 = Saturday
+        count++;
+      }
+      current.setDate(current.getDate() + 1);
+    }
+    return count;
+  };
+
+  const calculateDuration = (startDate, endDate) => {
+    const workingDays = calculateWorkingDays(startDate, endDate);
+    return `${workingDays} day${workingDays > 1 ? "s" : ""}`;
   };
 
   const calculateTotalDays = (startDate, endDate) => {
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    return Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+    return calculateWorkingDays(startDate, endDate);
   };
 
   const formatDate = (dateString) => {
@@ -397,6 +463,18 @@ export default function LeavePermission() {
                     className="w-full bg-white border border-gray-200 rounded-lg pl-10 pr-4 py-3 shadow-sm focus:ring-2 focus:ring-[#8a3b2d]/30 focus:border-[#8a3b2d] transition-all duration-200"
                     required
                   />
+                </div>
+              </div>
+
+              {/* New column to show duration in days */}
+              <div className="space-y-2 flex flex-col justify-end">
+                <label className="block text-sm font-medium text-[#662b1f]">
+                  Duration
+                </label>
+                <div className="py-3 px-4 border border-gray-200 rounded-lg bg-gray-50 text-gray-700">
+                  {form.startDate && form.endDate
+                    ? calculateDuration(form.startDate, form.endDate)
+                    : "-"}
                 </div>
               </div>
 

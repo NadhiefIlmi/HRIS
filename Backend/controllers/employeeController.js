@@ -507,7 +507,17 @@ exports.leaveRequest =  async (req, res) => {
 
         const start = new Date(startDate);
         const end = new Date(endDate);
-        const totalDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+
+        // Calculate working days excluding weekends
+        let totalDays = 0;
+        let current = new Date(start);
+        while (current <= end) {
+            const day = current.getDay();
+            if (day !== 0 && day !== 6) { // 0 = Sunday, 6 = Saturday
+                totalDays++;
+            }
+            current.setDate(current.getDate() + 1);
+        }
 
   // FIX: Pastikan leaveInfo ada dan ter-initialize dengan benar
         if (!employee.leaveInfo) {
@@ -520,7 +530,7 @@ exports.leaveRequest =  async (req, res) => {
         }
 
       // Cek jika cuti tahunan yang diajukan lebih besar dari sisa cuti yang tersedia
-        if (type === 'annual' && totalDays > employee.leaveInfo.remainingAnnualLeave) {
+        if (type === 'sick', 'annual', 'personal', 'maternity', 'other' && totalDays > employee.leaveInfo.remainingAnnualLeave) {
             return res.status(400).json({ 
                 message: `Not enough leave balance. You have ${employee.leaveInfo.remainingAnnualLeave} days remaining, but requested ${totalDays} days.` 
             });

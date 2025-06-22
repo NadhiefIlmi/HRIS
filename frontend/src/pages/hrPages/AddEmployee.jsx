@@ -81,8 +81,8 @@ const AddEmployee = () => {
 
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("basic");
+  const navigate = useNavigate();
 
-  // Define removeEducation function inside AddEmployee component scope
   const removeEducation = (index) => {
     setFormData((prev) => {
       const updatedEducation = [...prev.educationHistory];
@@ -99,9 +99,7 @@ const AddEmployee = () => {
     });
   };
 
-
   useDocumentTitle("Add New Employee");
-  const navigate = useNavigate();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -141,7 +139,16 @@ const AddEmployee = () => {
     const missingFields = requiredFields.filter(field => !formData[field]);
     
     if (missingFields.length > 0) {
-      toast.error(`Please fill all required fields: ${missingFields.join(", ")}`);
+      toast.error(`Please fill all required fields: ${missingFields.join(", ")}`, {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: "light",
+      });
       return false;
     }
     return true;
@@ -171,18 +178,48 @@ const AddEmployee = () => {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      toast.success(response.data.message || "Employee registered successfully");
+      toast.success(response.data.message || "Employee registered successfully", {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: "light",
+      });
+      
       setTimeout(() => {
         navigate("/employees");
       }, 1500);
     } catch (error) {
+      let errorMessage = "Failed to register employee";
+      
       if (error.response) {
-        toast.error(
-          `Error: ${error.response.data.message || "Failed to register"}`
-        );
+        if (error.response.status === 401) {
+          errorMessage = "Session expired. Please login again.";
+          setTimeout(() => {
+            navigate("/login");
+          }, 2000);
+        } else if (error.response.data && error.response.data.message) {
+          errorMessage = error.response.data.message;
+        }
+      } else if (error.request) {
+        errorMessage = "No response from server. Please try again later.";
       } else {
-        toast.error("Network error or server not responding");
+        errorMessage = error.message;
       }
+
+      toast.error(errorMessage, {
+        position: "top-right",
+        autoClose: 5000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+        progress: undefined,
+        theme: "light",
+      });
     } finally {
       setLoading(false);
     }
@@ -229,14 +266,13 @@ const AddEmployee = () => {
 
   return (
     <div className="min-h-screen from-slate-50 via-blue-50/30 to-indigo-50/40 py-8 px-4 sm:px-6 lg:px-8">
-      {/* Background decorative elements */}
+      
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-[#662b1f]/5 to-orange-200/10 rounded-full blur-3xl"></div>
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-blue-200/10 to-purple-200/10 rounded-full blur-3xl"></div>
       </div>
 
       <div className="relative max-w-5xl mx-auto">
-        {/* Header Section */}
         <div className="relative bg-gradient-to-r from-[#662b1f] via-[#7d3420] to-[#8b3a1f] rounded-3xl p-6 mb-8 text-white shadow-2xl overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -translate-y-32 translate-x-32"></div>
           
@@ -259,7 +295,6 @@ const AddEmployee = () => {
         </div>
 
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-white/50 overflow-hidden">
-          {/* Form Navigation */}
           <div className="border-b border-gray-200/50">
             <div className="flex overflow-x-auto">
               {["basic", "personal", "employment", "documents", "education", "training"].map((tab) => (
@@ -279,8 +314,6 @@ const AddEmployee = () => {
           </div>
 
           <form onSubmit={handleSubmit} className="p-6">
-            <ToastContainer position="top-right" autoClose={3000} />
-
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeTab}
@@ -304,7 +337,6 @@ const AddEmployee = () => {
               </motion.div>
             </AnimatePresence>
 
-            {/* Submit Button - shown on all tabs */}
             <div className="mt-12 pt-6 border-t border-gray-200/50">
               <button
                 type="submit"
@@ -331,7 +363,7 @@ const AddEmployee = () => {
   );
 };
 
-// Tab Components
+// Tab Components (remain the same as in your original code)
 function BasicInfoTab({ formData, handleChange, handlePhotoChange }) {
   return (
     <div className="mb-8">
@@ -652,89 +684,89 @@ function EducationTab({ formData, addEducation, handleEducationChange, removeEdu
           </div>
         )}
 
-              {formData.educationHistory.map((edu, idx) => (
-                <div
-                  key={idx}
-                  className="mb-6 p-6 bg-white rounded-xl border border-gray-200/70 shadow-sm hover:shadow-md transition-shadow relative"
-                >
-                  <button
-                    type="button"
-                    onClick={() => removeEducation(idx)}
-                    className="absolute top-3 right-3 text-red-500 hover:text-red-700"
-                    aria-label="Remove education entry"
-                  >
-                    <Trash2 size={20} />
-                  </button>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                      <label className="block mb-1 text-sm font-medium text-gray-700">
-                        Last Education
-                      </label>
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <BookOpen size={18} className="text-gray-500" />
-                        </div>
-                        <select
-                          value={edu.last_education}
-                          onChange={(e) =>
-                            handleEducationChange(
-                              idx,
-                              "last_education",
-                              e.target.value
-                            )
-                          }
-                          className="w-full pl-10 pr-4 py-3 bg-white/80 border border-gray-200/70 rounded-xl focus:ring-2 focus:ring-[#662b1f]/50 focus:border-transparent outline-none transition-all duration-200 shadow-sm"
-                        >
-                          <option value="">Select Last Education</option>
-                          <option value="SMK SEDERAJAT">SMK SEDERAJAT</option>
-                          <option value="SMA SEDERAJAT">SMA SEDERAJAT</option>
-                          <option value="S1">S1</option>
-                        </select>
-                      </div>
-                    </div>
-                    <InputField
-                      label="Institution"
-                      value={edu.institution}
-                      onChange={(e) =>
-                        handleEducationChange(
-                          idx,
-                          "institution",
-                          e.target.value
-                        )
-                      }
-                      icon={<Building />}
-                      placeholder="Enter institution name"
-                    />
-                    <InputField
-                      label="Majority"
-                      value={edu.majority}
-                      onChange={(e) =>
-                        handleEducationChange(
-                          idx,
-                          "majority",
-                          e.target.value
-                        )
-                      }
-                      icon={<BookOpen />}
-                      placeholder="Enter majority/field"
-                    />
-                    <InputField
-                      label="Year of Graduation"
-                      type="number"
-                      value={edu.year_of_graduation}
-                      onChange={(e) =>
-                        handleEducationChange(
-                          idx,
-                          "year_of_graduation",
-                          e.target.value
-                        )
-                      }
-                      icon={<Calendar />}
-                      placeholder="Enter graduation year"
-                    />
+        {formData.educationHistory.map((edu, idx) => (
+          <div
+            key={idx}
+            className="mb-6 p-6 bg-white rounded-xl border border-gray-200/70 shadow-sm hover:shadow-md transition-shadow relative"
+          >
+            <button
+              type="button"
+              onClick={() => removeEducation(idx)}
+              className="absolute top-3 right-3 text-red-500 hover:text-red-700"
+              aria-label="Remove education entry"
+            >
+              <Trash2 size={20} />
+            </button>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block mb-1 text-sm font-medium text-gray-700">
+                  Last Education
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <BookOpen size={18} className="text-gray-500" />
                   </div>
+                  <select
+                    value={edu.last_education}
+                    onChange={(e) =>
+                      handleEducationChange(
+                        idx,
+                        "last_education",
+                        e.target.value
+                      )
+                    }
+                    className="w-full pl-10 pr-4 py-3 bg-white/80 border border-gray-200/70 rounded-xl focus:ring-2 focus:ring-[#662b1f]/50 focus:border-transparent outline-none transition-all duration-200 shadow-sm"
+                  >
+                    <option value="">Select Last Education</option>
+                    <option value="SMK SEDERAJAT">SMK SEDERAJAT</option>
+                    <option value="SMA SEDERAJAT">SMA SEDERAJAT</option>
+                    <option value="S1">S1</option>
+                  </select>
                 </div>
-              ))}
+              </div>
+              <InputField
+                label="Institution"
+                value={edu.institution}
+                onChange={(e) =>
+                  handleEducationChange(
+                    idx,
+                    "institution",
+                    e.target.value
+                  )
+                }
+                icon={<Building />}
+                placeholder="Enter institution name"
+              />
+              <InputField
+                label="Majority"
+                value={edu.majority}
+                onChange={(e) =>
+                  handleEducationChange(
+                    idx,
+                    "majority",
+                    e.target.value
+                  )
+                }
+                icon={<BookOpen />}
+                placeholder="Enter majority/field"
+              />
+              <InputField
+                label="Year of Graduation"
+                type="number"
+                value={edu.year_of_graduation}
+                onChange={(e) =>
+                  handleEducationChange(
+                    idx,
+                    "year_of_graduation",
+                    e.target.value
+                  )
+                }
+                icon={<Calendar />}
+                placeholder="Enter graduation year"
+              />
+            </div>
+          </div>
+        ))}
 
         <button
           type="button"

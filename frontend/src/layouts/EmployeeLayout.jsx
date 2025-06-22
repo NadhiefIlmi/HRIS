@@ -135,9 +135,7 @@ function EmployeeLayout({ children }) {
     );
   }
 
-  const capitalizedName = profile.username
-    ? profile.username.charAt(0).toUpperCase() + profile.username.slice(1)
-    : "";
+  const usernameDisplay = profile.username || "";
 
   const formattedDate = currentTime.toLocaleDateString("en-US", {
     weekday: "long",
@@ -212,11 +210,11 @@ function EmployeeLayout({ children }) {
                   />
                   <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-gradient-to-r from-blue-400 to-blue-500 rounded-full border-2 border-white shadow-sm"></div>
                 </div>
-                <div>
-                  <h4 className="font-bold text-[#662b1f] flex items-center">
-                    {capitalizedName}
+                <div className="flex flex-col gap-1">
+                  <h4 className="font-bold text-[#662b1f]">
+                    {usernameDisplay}
                   </h4>
-                  <p className="text-xs text-gray-600 font-medium bg-white/50 px-2 py-1 rounded-full">
+                  <p className="text-xs text-gray-600 font-medium bg-white/50 px-2 py-0.5 rounded-full leading-tight">
                     {profile.department || "Employee"}
                   </p>
                 </div>
@@ -225,13 +223,13 @@ function EmployeeLayout({ children }) {
               <div className="flex items-center gap-3 relative">
                 <div className="relative">
                   <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#662b1f] to-[#8a3b2d] flex items-center justify-center text-white font-bold text-lg shadow-lg border-2 border-white">
-                    {capitalizedName.charAt(0)}
+                  {usernameDisplay.charAt(0)}
                   </div>
                   <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-gradient-to-r from-blue-400 to-blue-500 rounded-full border-2 border-white shadow-sm"></div>
                 </div>
                 <div>
                   <h4 className="font-bold text-[#662b1f] flex items-center">
-                    {capitalizedName}
+                    {usernameDisplay}
                   </h4>
                   <p className="text-xs text-gray-600 font-medium bg-white/50 px-2 py-1 rounded-full">
                     {profile.department || "Employee"}
@@ -306,7 +304,7 @@ function EmployeeLayout({ children }) {
             </button>
             <div>
               <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-[#662b1f] to-orange-600 bg-clip-text text-transparent flex items-center">
-                Welcome, {capitalizedName}
+                Welcome, {usernameDisplay}
                 <span className="hidden sm:inline-block ml-3 px-3 py-1 bg-gradient-to-r from-[#f5e8e0] to-orange-50/50 text-xs rounded-full text-[#662b1f] font-semibold border border-orange-200/50 shadow-sm">
                   {profile.department || "Employee"}
                 </span>

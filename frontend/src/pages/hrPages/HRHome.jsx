@@ -48,6 +48,8 @@ import {
   Bar,
 } from "recharts";
 import useDocumentTitle from "../../hooks/useDocumentTitle";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 function HRHome() {
   // Original state variables - preserved
@@ -111,9 +113,14 @@ function HRHome() {
           headers: { Authorization: `Bearer ${token}` },
         });
         setDepartmentData(res.data);
+    
       } catch (err) {
         console.error("Error fetching department distribution data:", err);
         setDepartmentData([]);
+        toast.error("Failed to load department data", {
+          position: "top-right",
+          autoClose: 3000,
+        });
       }
     };
 
@@ -135,9 +142,14 @@ function HRHome() {
           { name: "Female", value: res.data.female, color: "#a8441f" },
         ]);
         setGenderError(false);
+     
       } catch (err) {
         console.error("Error fetching gender data:", err);
         setGenderError(true);
+        toast.error("Failed to load gender data", {
+          position: "top-right",
+          autoClose: 3000,
+        });
       }
     };
 
@@ -159,8 +171,13 @@ function HRHome() {
         headers: { Authorization: `Bearer ${token}` },
       });
       setAnnouncements(res.data);
+   
     } catch (err) {
       console.error("Error fetching upcoming announcements:", err);
+      toast.error("Failed to load upcoming announcements", {
+        position: "top-right",
+        autoClose: 3000,
+      });
     }
   };
 
@@ -177,6 +194,10 @@ function HRHome() {
       return res.data;
     } catch (err) {
       console.error("Error fetching announcements:", err);
+      toast.error(`Failed to load announcements for date`, {
+        position: "top-right",
+        autoClose: 3000,
+      });
       return [];
     }
   };
@@ -200,101 +221,126 @@ function HRHome() {
   };
 
   const handleAnnouncementSubmit = async (e) => {
-  e.preventDefault();
-  try {
-    // Pastikan format date sesuai ISO (YYYY-MM-DD)
-    const formattedDate = newAnnouncement.date;
-    
-    const payload = {
-      ...newAnnouncement,
-      date: formattedDate
-    };
+    e.preventDefault();
+    try {
+      // Pastikan format date sesuai ISO (YYYY-MM-DD)
+      const formattedDate = newAnnouncement.date;
+      
+      const payload = {
+        ...newAnnouncement,
+        date: formattedDate
+      };
 
-    const token = localStorage.getItem("token");
-    await API.post("/api/hr/announcements", payload, {
-      headers: { 
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    });
-    
-    setShowAnnouncementModal(false);
-    setNewAnnouncement({
-      title: "",
-      description: "",
-      date: selectedDate,
-      time: "",
-      color: "#3B82F6",
-    });
-    
-    // Refresh data
-    fetchUpcomingAnnouncements();
-    setDaysInMonth(await generateDays(displayedYear, displayedMonth));
-    
-  } catch (err) {
-    console.error("Error creating announcement:", err);
-    // Tampilkan error lebih detail ke user
-    alert(`Failed to create announcement: ${err.response?.data?.message || err.message}`);
-  }
-};
+      const token = localStorage.getItem("token");
+      await API.post("/api/hr/announcements", payload, {
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      setShowAnnouncementModal(false);
+      setNewAnnouncement({
+        title: "",
+        description: "",
+        date: selectedDate,
+        time: "",
+        color: "#3B82F6",
+      });
+      
+      // Refresh data
+      fetchUpcomingAnnouncements();
+      setDaysInMonth(await generateDays(displayedYear, displayedMonth));
+      
+      toast.success("Announcement created successfully!", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+    } catch (err) {
+      console.error("Error creating announcement:", err);
+      const errorMessage = err.response?.data?.message || err.message;
+      toast.error(`Failed to create announcement: ${errorMessage}`, {
+        position: "top-right",
+        autoClose: 5000,
+      });
+    }
+  };
 
-const handleDeleteAnnouncement = async (id) => {
-  try {
-    const token = localStorage.getItem("token");
-    const response = await API.delete(`/api/hr/announcements/${id}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    
-    console.log("Delete response:", response.data);
-    
-    // Refresh the calendar and upcoming events
-    setDaysInMonth(await generateDays(displayedYear, displayedMonth));
-    fetchUpcomingAnnouncements();
-  } catch (err) {
-    console.error("Error deleting announcement:", err);
-    console.error("Error details:", err.response?.data);
-    alert(`Failed to delete announcement: ${err.response?.data?.message || err.message}`);
-  }
-};  
+  const handleDeleteAnnouncement = async (id) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await API.delete(`/api/hr/announcements/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      
+      console.log("Delete response:", response.data);
+      
+      // Refresh the calendar and upcoming events
+      setDaysInMonth(await generateDays(displayedYear, displayedMonth));
+      fetchUpcomingAnnouncements();
+      
+      toast.success("Announcement deleted successfully", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+    } catch (err) {
+      console.error("Error deleting announcement:", err);
+      console.error("Error details:", err.response?.data);
+      const errorMessage = err.response?.data?.message || err.message;
+      toast.error(`Failed to delete announcement: ${errorMessage}`, {
+        position: "top-right",
+        autoClose: 5000,
+      });
+    }
+  };  
 
   // Generate calendar days with announcements
   const generateDays = async (year, month) => {
-    const firstDay = new Date(year, month, 1).getDay();
-    const lastDate = new Date(year, month + 1, 0).getDate();
+    try {
+      const firstDay = new Date(year, month, 1).getDay();
+      const lastDate = new Date(year, month + 1, 0).getDate();
 
-    // Adjust firstDay for Monday-start week (Monday=0, Sunday=6)
-    const adjustedFirstDay = (firstDay + 6) % 7;
+      // Adjust firstDay for Monday-start week (Monday=0, Sunday=6)
+      const adjustedFirstDay = (firstDay + 6) % 7;
 
-    const days = [];
+      const days = [];
 
-    // Add empty slots for days before the 1st of the month
-    for (let i = 0; i < adjustedFirstDay; i++) {
-      days.push({ day: "", isCurrentDay: false, isWeekend: false });
-    }
+      // Add empty slots for days before the 1st of the month
+      for (let i = 0; i < adjustedFirstDay; i++) {
+        days.push({ day: "", isCurrentDay: false, isWeekend: false });
+      }
 
-    // Add all days in the month
-    for (let i = 1; i <= lastDate; i++) {
-      const dayOfWeek = new Date(year, month, i).getDay();
-      const date = new Date(year, month, i);
-      const dateString = date.toISOString().split("T")[0];
+      // Add all days in the month
+      for (let i = 1; i <= lastDate; i++) {
+        const dayOfWeek = new Date(year, month, i).getDay();
+        const date = new Date(year, month, i);
+        const dateString = date.toISOString().split("T")[0];
 
-      // Check if this date has any announcements
-      const dateAnnouncements = await fetchAnnouncementsByDate(date);
+        // Check if this date has any announcements
+        const dateAnnouncements = await fetchAnnouncementsByDate(date);
 
-      days.push({
-        day: i,
-        date: dateString,
-        isCurrentDay:
-          i === new Date().getDate() &&
-          month === new Date().getMonth() &&
-          year === new Date().getFullYear(),
-        isWeekend: dayOfWeek === 0 || dayOfWeek === 6,
-        hasAnnouncements: dateAnnouncements.length > 0,
-        announcements: dateAnnouncements,
+        days.push({
+          day: i,
+          date: dateString,
+          isCurrentDay:
+            i === new Date().getDate() &&
+            month === new Date().getMonth() &&
+            year === new Date().getFullYear(),
+          isWeekend: dayOfWeek === 0 || dayOfWeek === 6,
+          hasAnnouncements: dateAnnouncements.length > 0,
+          announcements: dateAnnouncements,
+        });
+      }
+
+      return days;
+    } catch (err) {
+      console.error("Error generating calendar days:", err);
+      toast.error("Failed to generate calendar data", {
+        position: "top-right",
+        autoClose: 3000,
       });
+      return [];
     }
-
-    return days;
   };
 
   // Set greeting and generate calendar
@@ -314,7 +360,11 @@ const handleDeleteAnnouncement = async (id) => {
 
     // Generate days when month or year changes
     const updateCalendar = async () => {
-      setDaysInMonth(await generateDays(displayedYear, displayedMonth));
+      try {
+        setDaysInMonth(await generateDays(displayedYear, displayedMonth));
+      } catch (err) {
+        console.error("Error updating calendar:", err);
+      }
     };
     updateCalendar();
   }, [displayedYear, displayedMonth]);
@@ -331,9 +381,14 @@ const handleDeleteAnnouncement = async (id) => {
         });
         setTotalEmployees(employeesResponse.data?.totalEmployees ?? 0);
         setEmployeesError(false);
+      
       } catch (error) {
         console.error("Error fetching total employees:", error);
         setEmployeesError(true);
+        toast.error("Failed to load employee count", {
+          position: "top-right",
+          autoClose: 3000,
+        });
       }
 
       try {
@@ -342,9 +397,14 @@ const handleDeleteAnnouncement = async (id) => {
         });
         setPendingRequests(pendingResponse.data?.totalPendingRequests ?? 0);
         setPendingError(false);
+       
       } catch (error) {
         console.error("Error fetching pending requests:", error);
         setPendingError(true);
+        toast.error("Failed to load pending requests", {
+          position: "top-right",
+          autoClose: 3000,
+        });
       }
 
       setLoading(false);
@@ -359,12 +419,22 @@ const handleDeleteAnnouncement = async (id) => {
           username: response.data.username || "",
         });
         setLoading(false);
+       
       } catch (err) {
         console.error("Error fetching profile:", err);
         setLoading(false);
         if (err.response && err.response.status === 401) {
           localStorage.clear();
           navigate("/");
+          toast.error("Session expired. Please login again.", {
+            position: "top-right",
+            autoClose: 3000,
+          });
+        } else {
+          toast.error("Failed to load profile", {
+            position: "top-right",
+            autoClose: 3000,
+          });
         }
       }
     };

@@ -23,6 +23,8 @@ import {
   FaBuilding,
 } from "react-icons/fa";
 import useDocumentTitle from "../../hooks/useDocumentTitle";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 function EditProfileEmployee() {
   const { id } = useParams();
@@ -130,7 +132,7 @@ function EditProfileEmployee() {
         }
       } catch (error) {
         console.error("Error fetching employee:", error);
-        alert("Error fetching employee data");
+        toast.error("Error fetching employee data");
       } finally {
         setLoading(false);
       }
@@ -285,20 +287,20 @@ function EditProfileEmployee() {
         },
       });
 
-      alert("Employee updated successfully");
+      toast.success("Employee updated successfully");
       navigate(-1);
     } catch (error) {
       console.error("Error updating employee:", error);
       if (error.response) {
-        alert(
+        toast.error(
           `Failed to update employee: ${
             error.response.data.message || "Unknown error"
           }`
         );
       } else if (error.request) {
-        alert("Failed to update employee: Cannot connect to server");
+        toast.error("Failed to update employee: Cannot connect to server");
       } else {
-        alert(`Failed to update employee: ${error.message}`);
+        toast.error(`Failed to update employee: ${error.message}`);
       }
     } finally {
       setSaving(false);
