@@ -277,7 +277,7 @@ function EditProfileEmployee() {
       });
 
       if (selectedFile) {
-        form.append("photo", selectedFile);
+        form.append("file", selectedFile);
       }
 
       const response = await API.put(`/api/hr/employee/edit/${id}`, form, {

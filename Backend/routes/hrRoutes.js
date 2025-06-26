@@ -8,14 +8,14 @@ const { changePassword } = require('../controllers/HRController');
 
 
 
-router.post('/register', hrController.registerHR);
+// router.post('/register', hrController.registerHR);
 router.post('/login', hrController.loginHR);
 router.post('/logout', authenticateHR, hrController.logoutHR);
 router.get('/me', authenticateHR, checkBlacklistedToken, hrController.personalDataHR);
 router.get('/employee', authenticateHR, checkBlacklistedToken, hrController.getAllEmployee);
 router.delete('/deleteEmployee/:id', authenticateHR, checkBlacklistedToken, hrController.deleteEmployee);
 router.delete('/deleteAllEmployees', authenticateHR, checkBlacklistedToken, hrController.deleteAllEmployees);
-router.get('/', authenticateHR, checkBlacklistedToken, hrController.getAllHR);
+// router.get('/', authenticateHR, checkBlacklistedToken, hrController.getAllHR);
 router.put('/edit', authenticateHR, checkBlacklistedToken, uploadProfilePhoto.single('file'), hrController.editProfileHR);
 router.put('/approve-leave/:id', authenticateHR, hrController.leaveApproval);
 router.get('/leave-requests', authenticateHR, hrController.viewLeaveRequest);

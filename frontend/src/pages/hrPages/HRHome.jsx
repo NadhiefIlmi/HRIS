@@ -536,7 +536,7 @@ function HRHome() {
                       </div>
                       <p className="text-3xl font-bold text-gray-900 mb-1">
                         {loading ? (
-                          <div className="animate-pulse bg-gradient-to-r from-gray-200 to-gray-300 h-8 w-16 rounded-lg"></div>
+                          <span className="animate-pulse bg-gradient-to-r from-gray-200 to-gray-300 h-8 w-16 rounded-lg"></span>
                         ) : employeesError ? (
                           <span className="text-red-500 text-lg flex items-center">
                             <AlertCircle size={20} className="mr-2" />
@@ -573,7 +573,7 @@ function HRHome() {
                       </div>
                       <p className="text-3xl font-bold text-gray-900 mb-1">
                         {loading ? (
-                          <div className="animate-pulse bg-gradient-to-r from-gray-200 to-gray-300 h-8 w-16 rounded-lg"></div>
+                          <span className="animate-pulse bg-gradient-to-r from-gray-200 to-gray-300 h-8 w-16 rounded-lg"></span>
                         ) : pendingError ? (
                           <span className="text-red-500 text-lg flex items-center">
                             <AlertCircle size={20} className="mr-2" />

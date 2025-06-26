@@ -225,6 +225,12 @@ function LoginPage() {
                   Employee Management System
                 </p>
               </div>
+              <Link 
+                  to="/admin-login" 
+                  className="text-xs sm:text-sm text-[#5f2317] hover:text-[#8a3b2d] font-semibold transition-colors duration-200 hover:underline"
+                >
+                  Login Admin 
+                </Link>
             </motion.div>
           </motion.div>
 

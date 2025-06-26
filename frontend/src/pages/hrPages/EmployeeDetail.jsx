@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import API from "../../api/api";
+import { motion } from 'framer-motion';
 import {
   FaBuilding,
   FaIdCard,
@@ -23,6 +24,10 @@ import {
   ChevronRight,
   MoreHorizontal,
   Loader2,
+  File,
+  Download,
+  Check,
+  AlertCircle,
   Edit,
 } from "lucide-react";
 
@@ -135,7 +140,10 @@ function EmployeeDetail() {
   const [uploadMessage, setUploadMessage] = useState("");
   const [attendancePage, setAttendancePage] = useState(1);
   const [educationPage, setEducationPage] = useState(1);
-  const [trainingPage, setTrainingPage] = useState(3);
+  const [trainingPage, setTrainingPage] = useState(1);
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
+  const [salarySlips, setSalarySlips] = useState([]);
 
   const attendancePageSize = 5;
   const educationPageSize = 3;
@@ -276,6 +284,75 @@ function EmployeeDetail() {
 
     fetchExistingFile();
   }, [id]);
+
+  useEffect(() => {
+  const fetchSalarySlips = async () => {
+    const token = localStorage.getItem("token");
+    try {
+      setLoading(true);
+      const res = await API.get(`/api/hr/salary-slip/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (res.data.salarySlips && res.data.salarySlips.length > 0) {
+        const salarySlipsData = res.data.salarySlips.map(slip => ({
+          key: `${slip.path}-${slip.date}`,
+          url: `${API.defaults.baseURL}${slip.path}`,
+          date: new Date(slip.date).toLocaleDateString('id-ID', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          }),
+          filename: slip.path.split('/').pop()
+        }));
+        
+        setSalarySlips(salarySlipsData);
+        setError(''); // Clear any previous errors
+      } else {
+        // Hanya set pesan info, bukan error
+        setSalarySlips([]); // Pastikan array kosong
+        setError('Belum ada slip gaji tersedia.');
+        setTimeout(() => setMessage(''), 3000); // Hapus pesan setelah 3 detik (opsional)
+      }
+    } catch (err) {
+      // console.error('Gagal mengambil data slip gaji:', err);
+      // Tidak perlu set error di sini jika ingin menyembunyikan error dari user
+      setSalarySlips([]); // Pastikan array kosong
+      setError('Belum ada slip gaji tersedia.'); // Tampilkan pesan yang sama seperti ketika data kosong
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchSalarySlips();
+}, [id]);
+
+  const handleDownload = async (url, filename) => {
+    try {
+      setLoading(true);
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = filename || `salary-slip_${new Date().toISOString().slice(0,10)}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      window.URL.revokeObjectURL(downloadUrl);
+      setMessage('Salary slip downloaded successfully!');
+      setTimeout(() => setMessage(''), 3000);
+    } catch (err) {
+      console.error('Download failed', err);
+      setError('Failed to download salary slip.');
+      setTimeout(() => setError(''), 3000);
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
   const handleDelete = async () => {
     const confirmDelete = window.confirm(
@@ -452,8 +529,6 @@ function EmployeeDetail() {
                     Personal Information
                   </h3>
                 </div>
-
-                
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   <InfoCard 
@@ -834,7 +909,98 @@ function EmployeeDetail() {
                   <div className="w-1 h-6 bg-gradient-to-b from-[#662b1f] to-orange-500 rounded-full mr-3"></div>
                   Salary Slip
                 </h3>
-                
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.2, duration: 0.5 }}
+                  className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg p-6 border border-white/30"
+                >
+                  {(message || error) && (
+                    <div
+                      className={`mb-6 p-4 rounded-lg ${
+                        message
+                          ? "bg-green-50 border-l-4 border-green-500"
+                          : "bg-red-50 border-l-4 border-red-500"
+                      } flex items-center`}
+                    >
+                      {message ? (
+                        <Check size={20} className="text-green-500 mr-3" />
+                      ) : (
+                        <AlertCircle size={20} className="text-red-500 mr-3" />
+                      )}
+                      <p className={message ? "text-green-700" : "text-red-700"}>
+                        {message || error}
+                      </p>
+                    </div>
+                  )}
+
+                  {loading && salarySlips.length === 0 ? (
+                    <div className="flex justify-center items-center py-12">
+                      <div className="animate-pulse flex space-x-4">
+                        <div className="rounded-full bg-[#f0e8e4] h-12 w-12"></div>
+                        <div className="flex-1 space-y-4 py-1">
+                          <div className="h-4 bg-[#f0e8e4] rounded w-3/4"></div>
+                          <div className="space-y-2">
+                            <div className="h-4 bg-[#f0e8e4] rounded"></div>
+                            <div className="h-4 bg-[#f0e8e4] rounded w-5/6"></div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : salarySlips.length > 0 ? (
+                    <div className="space-y-4">
+                      {salarySlips.map((slip) => (
+                        <div key={slip.key} className="border border-gray-200 rounded-xl p-4">
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <h4 className="font-medium text-[#662b1f]">{slip.filename}</h4>
+                              <p className="text-sm text-gray-500 mt-1">Issued: {slip.date}</p>
+                            </div>
+                            <div className="flex space-x-2">
+                              <a
+                                href={slip.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-sm font-medium hover:bg-blue-100 transition-colors"
+                              >
+                                View
+                              </a>
+                              <button
+                                onClick={() => handleDownload(slip.url, slip.filename)}
+                                disabled={loading}
+                                className="px-3 py-1.5 bg-green-50 text-green-600 rounded-lg text-sm font-medium hover:bg-green-100 transition-colors flex items-center"
+                              >
+                                {loading ? (
+                                  <svg className="animate-spin h-4 w-4 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                  </svg>
+                                ) : (
+                                  <Download size={16} className="mr-1" />
+                                )}
+                                Download
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="bg-white border rounded-xl p-8 text-center">
+                      <div className="w-16 h-16 bg-[#fdf6f3] rounded-full flex items-center justify-center mx-auto mb-4">
+                        <File size={24} className="text-[#8a3b2d]" />
+                      </div>
+                      <h4 className="text-lg font-medium text-[#662b1f]">
+                        No salary slips available
+                      </h4>
+                      <p className="text-gray-500 mt-2">
+                        {error || "Your salary slips haven't been generated yet."}
+                      </p>
+                    </div>
+                  )}
+                </motion.div>            
+
+
                 <div className="flex flex-col items-center w-full">
                   {!file ? (
                     <label

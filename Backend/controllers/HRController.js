@@ -16,26 +16,53 @@ const rename = promisify(fs.rename);
 const rmdir = promisify(fs.rmdir);
 const xlsx = require('xlsx');
 
-exports.registerHR = async (req, res) => {
-    const { username, password } = req.body;
-    if (!username || !password) {
-        return res.status(400).json({ message: 'Username and password are required' });
-    }
+// exports.registerHR = async (req, res) => {
+//     const { username, password } = req.body;
+//     if (!username || !password) {
+//         return res.status(400).json({ message: 'Username and password are required' });
+//     }
 
-    try {
-        const existingHR = await HR.findOne({ username });
-        if (existingHR) {
-            return res.status(409).json({ message: 'Username already exists' });
-        }
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash(password, salt);
-        const newHR = new HR({ username, password: hashedPassword });
-        await newHR.save();
-        res.json({ message: 'HR registered successfully' });
-    } catch (err) {
-        res.status(500).json({ message: 'Error registering HR' });
-    }
-};
+//     try {
+//         const existingHR = await HR.findOne({ username });
+//         if (existingHR) {
+//             return res.status(409).json({ message: 'Username already exists' });
+//         }
+//         const salt = await bcrypt.genSalt(10);
+//         const hashedPassword = await bcrypt.hash(password, salt);
+//         const newHR = new HR({ username, password: hashedPassword });
+//         await newHR.save();
+//         res.json({ message: 'HR registered successfully' });
+//     } catch (err) {
+//         res.status(500).json({ message: 'Error registering HR' });
+//     }
+// };
+
+// exports.getAllHR = async (req, res) => {
+//     const hr = await HR.find({}, { password: 0 });
+//     res.json(hr);
+// };
+
+// exports.deleteHR = async (req, res) => {
+//     try {
+//         const { id } = req.params;
+
+//         // Cari employee berdasarkan NIK
+//         const hr = await HR.findById(id);
+
+//         if (!hr) {
+//             return res.status(404).json({ message: 'HR not found' });
+//         }
+//         const deletedUsername = hr.username;
+//         // Hapus employee
+//         await HR.deleteOne({ _id: id });
+
+//         res.json({ message: `HR with username ${deletedUsername} deleted successfully` });
+//     } catch (err) {
+//         console.error("[Delete HR] Error:", err);
+//         res.status(500).json({ message: 'Internal Server Error' });
+//     }
+// };
+
 
 exports.loginHR = async (req, res) => {
     const { username, password } = req.body;
@@ -123,12 +150,6 @@ exports.deleteAllEmployees = async (req, res) => {
         console.error("[Delete All Employees] Error:", err);
         res.status(500).json({ message: 'Internal Server Error' });
     }
-};
-
-// **HR Bisa Melihat Semua Karyawan**
-exports.getAllHR = async (req, res) => {
-    const hr = await HR.find({}, { password: 0 });
-    res.json(hr);
 };
 
 exports.editProfileEmployeeByHR = async (req, res) => {
@@ -231,9 +252,9 @@ if (typeof leaveInfo === 'string') {
         }
 
         // Handle file upload untuk foto
-        if (req.file !== undefined) {
+        if (req.file) {
             if (employee.photo) {
-                const oldPath = path.join(__dirname, '..', employee.photo);
+                const oldPath = path.join(__dirname, '..', 'utils', employee.photo);
                 if (fs.existsSync(oldPath)) {
                     try {
                         fs.unlinkSync(oldPath);
@@ -438,18 +459,84 @@ exports.viewPendingLeaveRequest = async (req, res) => {
 
 exports.uploadSalarySlip = async (req, res) => {
     try {
+        if (!req.file) {
+            return res.status(400).json({ message: 'No PDF file uploaded' });
+        }
+
         const employee = await Employee.findById(req.params.employeeId);
         if (!employee) {
+            // Clean up the uploaded file if employee not found
+            fs.unlinkSync(req.file.path);
             return res.status(404).json({ message: 'Employee not found' });
         }
 
-        // Simpan path file slip gaji ke database
-        employee.salarySlip = `/uploads/salary-slips/${req.file.filename}`;
+        // Create directory if it doesn't exist
+        const salaryDir = path.join(__dirname, '../utils/uploads/salary-slips');
+        if (!fs.existsSync(salaryDir)) {
+            fs.mkdirSync(salaryDir, { recursive: true });
+        }
+
+        // Format filename with timestamp
+        const now = new Date();
+        const pad = n => n.toString().padStart(2, '0');
+        const formattedDate = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}-${pad(now.getHours())}.${pad(now.getMinutes())}.${pad(now.getSeconds())}`;
+        const finalFilename = `${formattedDate}_${req.file.originalname}`;
+        const finalPath = path.join(salaryDir, finalFilename);
+
+        // Move file to permanent location
+        fs.renameSync(req.file.path, finalPath);
+
+        // Initialize salarySlips array if it doesn't exist
+        if (!employee.salarySlips) {
+            employee.salarySlips = [];
+        }
+
+        // Add new slip to array
+        employee.salarySlips.push({
+            path: `/uploads/salary-slips/${finalFilename}`,
+            date: now,
+            originalName: req.file.originalname
+        });
+
+        // Sort by date (newest first)
+        employee.salarySlips.sort((a, b) => b.date - a.date);
+
+        // Keep only the 3 most recent slips
+        if (employee.salarySlips.length > 3) {
+            const slipsToRemove = employee.salarySlips.slice(3);
+            employee.salarySlips = employee.salarySlips.slice(0, 3);
+            
+            // Remove oldest files physically
+            slipsToRemove.forEach(slip => {
+                const fileToDelete = path.join(__dirname, '../utils', slip.path);
+                if (fs.existsSync(fileToDelete)) {
+                    fs.unlinkSync(fileToDelete);
+                }
+            });
+        }
+
         await employee.save();
 
-        res.json({ message: 'Salary slip uploaded successfully', salarySlip: employee.salarySlip });
+        res.json({
+            message: 'Salary slip uploaded successfully',
+            salarySlip: {
+                path: `/uploads/salary-slips/${finalFilename}`,
+                date: now,
+                originalName: req.file.originalname
+            },
+            remainingSlips: employee.salarySlips.length
+        });
+
     } catch (error) {
-        res.status(500).json({ message: 'Internal Server Error', error });
+        // Clean up any uploaded files if error occurs
+        if (req.file && fs.existsSync(req.file.path)) {
+            fs.unlinkSync(req.file.path);
+        }
+        console.error('Error uploading salary slip:', error);
+        res.status(500).json({ 
+            message: 'Internal Server Error',
+            error: error.message 
+        });
     }
 };
 
@@ -469,7 +556,7 @@ exports.getSalarySlips = async (req, res) => {
         // Buat URL lengkap untuk setiap slip gaji
         const baseUrl = `${req.protocol}://${req.get('host')}`;
         const salarySlips = employee.salarySlips.map(slip => ({
-            path: encodeURI(`${baseUrl}${slip.path}`),
+            path: encodeURI(`${slip.path}`),
             date: slip.date
         }));
 
@@ -640,8 +727,6 @@ exports.getUpcomingAnnouncements = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
-
 
 exports.deleteAnnouncement = async (req, res) => {
   try {

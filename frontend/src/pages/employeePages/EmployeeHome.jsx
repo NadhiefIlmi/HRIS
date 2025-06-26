@@ -183,44 +183,32 @@ function EmployeeHome() {
 
   // Effect to check the time and attendance status
   useEffect(() => {
-    const checkAutoCheckout = () => {
-      const now = new Date();
-      const currentHour = now.getHours();
-      const currentMinutes = now.getMinutes();
-      const currentSecond = now.getSeconds();
-
-      // Check is it already 5 PM (17:00)
-      if (
-        currentHour >= 17 &&
-        currentMinutes >= 0 &&
-        currentSecond == 0 &&
-        !autoCheckoutDone
-      ) {
-        if (attendanceStatus?.checkIn && !attendanceStatus?.checkOut) {
-          handleAutoCheckOut();
-        }
+  const checkAutoCheckout = () => {
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMinutes = now.getMinutes();
+    
+    // Check for reminder at 1:14 PM (13:14)
+    if (currentHour === 12 && currentMinutes === 30 && !attendanceStatus?.checkOut) {
+      setShowReminder(true);
+    }
+    
+    // Check for auto-checkout at 1:15 PM (13:15)
+    if (currentHour === 12 && currentMinutes === 31 && !autoCheckoutDone) {
+      if (attendanceStatus?.checkIn && !attendanceStatus?.checkOut) {
+        handleAutoCheckOut();
       }
+    }
+  };
 
-      // Give warning to employee to check out before 5 PM (16:50)
-      if (
-        currentHour === 16 &&
-        currentMinutes >= 50 &&
-        currentSecond == 0 &&
-        !attendanceStatus?.checkOut
-      ) {
-        setShowReminder(true);
-      } else {
-        setShowReminder(false);
-      }
-    };
+  // Check every minute (60000ms)
+  const interval = setInterval(checkAutoCheckout, 6000);
+  
+  // Check immediately on mount
+  checkAutoCheckout();
 
-    // Check every minute
-    const interval = setInterval(checkAutoCheckout, 60000);
-
-    checkAutoCheckout();
-
-    return () => clearInterval(interval);
-  }, [attendanceStatus, autoCheckoutDone]);
+  return () => clearInterval(interval);
+}, [attendanceStatus, autoCheckoutDone]);
 
   // Check out status reset every midnight
   useEffect(() => {
