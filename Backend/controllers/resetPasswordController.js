@@ -1,5 +1,6 @@
 const Employee = require('../models/Employee');
 const HR = require('../models/HR');
+const Admin = require('../models/Admin');
 const ResetToken = require('../models/ResetToken');
 const bcrypt = require('bcryptjs');
 const { transporter, generateOTPEmail } = require('../utils/emailConfig');
@@ -14,6 +15,10 @@ exports.requestResetPassword = async (req, res) => {
         if (!user) {
             user = await HR.findOne({ username, email });
             role = 'hr';
+        }
+        if(!user){
+            user = await Admin.findOne({ username, email });
+            role = 'admin';
         }
 
         if (!user){
@@ -70,6 +75,8 @@ exports.resetPassword = async (req, res) => {
             await Employee.findOneAndUpdate({ username }, { password: hashedPassword });
         } else if (resetToken.role === 'hr') {
             await HR.findOneAndUpdate({ username }, { password: hashedPassword });
+        } else if (resetToken.role === 'admin') {
+            await Admin.findOneAndUpdate({ username }, { password: hashedPassword });
         } else {
             return res.status(400).json({ message: 'Role tidak valid' });
         }   

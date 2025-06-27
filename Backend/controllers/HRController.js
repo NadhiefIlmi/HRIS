@@ -479,7 +479,7 @@ exports.uploadSalarySlip = async (req, res) => {
         // Format filename with timestamp
         const now = new Date();
         const pad = n => n.toString().padStart(2, '0');
-        const formattedDate = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}-${pad(now.getHours())}.${pad(now.getMinutes())}.${pad(now.getSeconds())}`;
+        const formattedDate = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate()+1)}-${pad((now.getHours()+7)%24)}.${pad(now.getMinutes())}.${pad(now.getSeconds())}`;
         const finalFilename = `${formattedDate}_${req.file.originalname}`;
         const finalPath = path.join(salaryDir, finalFilename);
 
@@ -823,7 +823,7 @@ exports.uploadSalarySlipZip = async (req, res) => {
                     // Format tanggal untuk nama file
                     const now = new Date();
                     const pad = n => n.toString().padStart(2, '0');
-                    const formattedDate = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}-${pad(now.getHours())}.${pad(now.getMinutes())}.${pad(now.getSeconds())}`;
+                    const formattedDate = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate()+1)}-${pad((now.getHours()+7)%24)}.${pad(now.getMinutes())}.${pad(now.getSeconds())}`;
                     finalFilename = `${formattedDate}_${file}`;
                     finalPath = path.join(__dirname, '../utils/uploads/salary-slips', finalFilename);
 
