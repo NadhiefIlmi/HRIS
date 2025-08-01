@@ -5,6 +5,7 @@ const jwt = require('jsonwebtoken');
 const mongoose = require('mongoose');
 const { blacklistedTokens } = require('../middleware/checkBlacklistedToken');
 
+// Admin Login Method
 exports.loginAdmin = async (req, res) => {
     const {username, password} = req.body;
     const admin = await Admin.findOne({username});
@@ -18,6 +19,7 @@ exports.loginAdmin = async (req, res) => {
     res.json({token});
 }
 
+// Admin Register Method
 exports.registerAdmin = async (req, res) => {
     const { username, email, password } = req.body;
     if (!username || !password) {
@@ -39,12 +41,14 @@ exports.registerAdmin = async (req, res) => {
     }
 };
 
+// Admin Logout Method
 exports.logoutAdmin = (req, res) => {
     const token = req.header('Authorization');
     blacklistedTokens.add(token);
     res.json({ message: 'Logged out successfully' });
 };
 
+// Get All Admin Method
 exports.getAdmin = async (req, res) => {
     try{
         const admin = await Admin.find({});
@@ -54,6 +58,23 @@ exports.getAdmin = async (req, res) => {
     }
 };
 
+exports.deleteAdmin = async (req, res) => {
+    try {
+        const {id} = req.params;
+        const admin = await Admin.findById(id);
+        if(!admin){
+            return res.status(404).json({ message: 'Admin not found' });
+        }
+        const deletedUsername = admin.username;
+        await Admin.deleteOne({_id: id});
+        res.json({message: `Admin with username ${deletedUsername} deleted successfully`});
+        } catch (err) {
+            console.error("[Delete Admin] Error:", err);
+            res.status(500).json({ message: 'Internal Server Error' });
+    }
+};
+
+// Register HR from Admin 
 exports.registerHR = async (req, res) => {
     const { username, email, password } = req.body;
     if (!username || !password) {
@@ -75,23 +96,21 @@ exports.registerHR = async (req, res) => {
     }
 };
 
+// Get All HR Method
 exports.getAllHR = async (req, res) => {
     const hr = await HR.find({}, { password: 0 });
     res.json(hr);
 };
 
+// Delete Specific HR Method
 exports.deleteHR = async (req, res) => {
     try {
         const { id } = req.params;
-
-        // Cari employee berdasarkan NIK
         const hr = await HR.findById(id);
-
         if (!hr) {
             return res.status(404).json({ message: 'HR not found' });
         }
         const deletedUsername = hr.username;
-        // Hapus employee
         await HR.deleteOne({ _id: id });
 
         res.json({ message: `HR with username ${deletedUsername} deleted successfully` });

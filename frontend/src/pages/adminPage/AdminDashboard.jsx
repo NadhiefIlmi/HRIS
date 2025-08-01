@@ -153,7 +153,7 @@ function AdminDashboard() {
         if (type === "hr") {
           await API.delete(`/api/admin/hr/delete/${id}`);
           toast.success("HR deleted successfully");
-        } else {
+        } if (type === "admin") {
           await API.delete(`/api/admin/delete/${id}`);
           toast.success("Admin deleted successfully");
         }

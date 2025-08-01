@@ -14,7 +14,6 @@ const announcementSchema = new mongoose.Schema({
   createdByName: { type: String, required: true }
 }, { timestamps: true });
 
-// Solusi 1: Cek apakah model sudah ada sebelum membuatnya
 const Announcement = mongoose.models.Announcement || 
                    mongoose.model('Announcement', announcementSchema);
 

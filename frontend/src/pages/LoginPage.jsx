@@ -217,7 +217,7 @@ function LoginPage() {
               animate="animate"
             >
               <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold mb-2 sm:mb-3 bg-gradient-to-r from-white via-pink-100 to-white bg-clip-text text-transparent">
-                Welcome to Chateraise
+                <a href="/admin-login" className="inherit-all-styles">Welcome to Chateraise</a>
               </h1>
               <div className="flex items-center gap-2">
                 <Sparkles size={18} className="text-pink-300" />
@@ -225,12 +225,6 @@ function LoginPage() {
                   Employee Management System
                 </p>
               </div>
-              <Link 
-                  to="/admin-login" 
-                  className="text-xs sm:text-sm text-[#5f2317] hover:text-[#8a3b2d] font-semibold transition-colors duration-200 hover:underline"
-                >
-                  Login Admin 
-                </Link>
             </motion.div>
           </motion.div>
 

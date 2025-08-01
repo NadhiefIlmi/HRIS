@@ -19,8 +19,8 @@ const TrainingSchema = new mongoose.Schema({
 }, { _id: true });
 
 const SalarySlipSchema = new mongoose.Schema({
-  path: String,   // Path file slip gaji
-  date: {         // Tanggal upload slip
+  path: String,   
+  date: {         
     type: Date,
     default: Date.now
   }
@@ -61,9 +61,9 @@ const EmployeeSchema = new mongoose.Schema({
     password: String,
     attendanceRecords: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Attendance' }],
     leaveInfo: { 
-        totalAnnualLeave: { type: Number, default: 12 }, // Jumlah cuti tahunan yang tersedia
-        usedAnnualLeave: { type: Number, default: 0 },  // Cuti yang sudah digunakan
-        remainingAnnualLeave: { type: Number, default: 12 } // Sisa cuti
+        totalAnnualLeave: { type: Number, default: 12 }, 
+        usedAnnualLeave: { type: Number, default: 0 },  
+        remainingAnnualLeave: { type: Number, default: 12 } 
     },
     leaveRecords: [{ type: mongoose.Schema.Types.ObjectId, ref: 'LeaveRequest' }]
 });

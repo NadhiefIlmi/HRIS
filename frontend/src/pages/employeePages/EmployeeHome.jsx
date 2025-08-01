@@ -189,12 +189,12 @@ function EmployeeHome() {
     const currentMinutes = now.getMinutes();
     
     // Check for reminder at 1:14 PM (13:14)
-    if (currentHour === 12 && currentMinutes === 30 && !attendanceStatus?.checkOut) {
+    if (currentHour === 16 && currentMinutes === 50 && !attendanceStatus?.checkOut) {
       setShowReminder(true);
     }
     
     // Check for auto-checkout at 1:15 PM (13:15)
-    if (currentHour === 12 && currentMinutes === 31 && !autoCheckoutDone) {
+    if (currentHour === 17 && currentMinutes === 0 && !autoCheckoutDone) {
       if (attendanceStatus?.checkIn && !attendanceStatus?.checkOut) {
         handleAutoCheckOut();
       }

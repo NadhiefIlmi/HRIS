@@ -6,7 +6,7 @@ const LeaveRequestSchema = new mongoose.Schema({
     startDate: { type: Date, required: true },
     endDate: { type: Date, required: true },
     reason: { type: String },
-    totalDays: { type: Number, required: true }, // FIX: Tambahkan field ini
+    totalDays: { type: Number, required: true }, 
     status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
     requestedAt: { type: Date, default: Date.now },
     approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'HR', default: null }

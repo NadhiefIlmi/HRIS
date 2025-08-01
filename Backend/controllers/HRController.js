@@ -16,54 +16,7 @@ const rename = promisify(fs.rename);
 const rmdir = promisify(fs.rmdir);
 const xlsx = require('xlsx');
 
-// exports.registerHR = async (req, res) => {
-//     const { username, password } = req.body;
-//     if (!username || !password) {
-//         return res.status(400).json({ message: 'Username and password are required' });
-//     }
-
-//     try {
-//         const existingHR = await HR.findOne({ username });
-//         if (existingHR) {
-//             return res.status(409).json({ message: 'Username already exists' });
-//         }
-//         const salt = await bcrypt.genSalt(10);
-//         const hashedPassword = await bcrypt.hash(password, salt);
-//         const newHR = new HR({ username, password: hashedPassword });
-//         await newHR.save();
-//         res.json({ message: 'HR registered successfully' });
-//     } catch (err) {
-//         res.status(500).json({ message: 'Error registering HR' });
-//     }
-// };
-
-// exports.getAllHR = async (req, res) => {
-//     const hr = await HR.find({}, { password: 0 });
-//     res.json(hr);
-// };
-
-// exports.deleteHR = async (req, res) => {
-//     try {
-//         const { id } = req.params;
-
-//         // Cari employee berdasarkan NIK
-//         const hr = await HR.findById(id);
-
-//         if (!hr) {
-//             return res.status(404).json({ message: 'HR not found' });
-//         }
-//         const deletedUsername = hr.username;
-//         // Hapus employee
-//         await HR.deleteOne({ _id: id });
-
-//         res.json({ message: `HR with username ${deletedUsername} deleted successfully` });
-//     } catch (err) {
-//         console.error("[Delete HR] Error:", err);
-//         res.status(500).json({ message: 'Internal Server Error' });
-//     }
-// };
-
-
+// Login HR Method
 exports.loginHR = async (req, res) => {
     const { username, password } = req.body;
     const hr = await HR.findOne({ username });
@@ -76,13 +29,14 @@ exports.loginHR = async (req, res) => {
     res.json({ token });
 };
 
+// Logout HR Method
 exports.logoutHR = (req, res) => {
     const token = req.header('Authorization');
     blacklistedTokens.add(token);
     res.json({ message: 'Logged out successfully' });
 };
 
-// **HR Melihat Profil Mereka Sendiri**
+// View Personal HR Data Method
 exports.personalDataHR = async (req, res) => {
     try {
         const hrId = req.hr._id;
@@ -93,7 +47,7 @@ exports.personalDataHR = async (req, res) => {
             return res.status(400).json({ message: 'Invalid HR ID' });
         }
 
-        const hr = await HR.findById(hrId, {password:0}); // Jangan tampilkan password
+        const hr = await HR.findById(hrId, {password:0}); 
 
         if (!hr) {
             console.log("[Endpoint] HR not found:", hrId);
@@ -107,7 +61,7 @@ exports.personalDataHR = async (req, res) => {
     }
 };
 
-// **HR Bisa Melihat Semua Karyawan**
+// Get All Employees Method
 exports.getAllEmployee = async (req, res) => {
     try {
         const employees = await Employee.find({})
@@ -121,18 +75,16 @@ exports.getAllEmployee = async (req, res) => {
     }
 };
 
+// Delete Specific Employee Method
 exports.deleteEmployee = async (req, res) => {
     try {
         const { id } = req.params;
-
-        // Cari employee berdasarkan NIK
         const employee = await Employee.findById(id);
 
         if (!employee) {
             return res.status(404).json({ message: 'Employee not found' });
         }
         const deletedUsername = employee.username;
-        // Hapus employee
         await Employee.deleteOne({ _id: id });
 
         res.json({ message: `Employee with username ${deletedUsername} deleted successfully` });
@@ -142,6 +94,8 @@ exports.deleteEmployee = async (req, res) => {
     }
 };
 
+// Delete All Employee Method
+// FOR DEVELOPMENT PURPOSE
 exports.deleteAllEmployees = async (req, res) => {
     try {
         const result = await Employee.deleteMany({});
@@ -152,6 +106,7 @@ exports.deleteAllEmployees = async (req, res) => {
     }
 };
 
+// Edit Employee Personal Data
 exports.editProfileEmployeeByHR = async (req, res) => {
     try {
         const { id } = req.params;
@@ -178,18 +133,16 @@ exports.editProfileEmployeeByHR = async (req, res) => {
     department,
     educationHistory,
     trainingHistory,
-    leaveInfo, // Tambahan untuk leave info
+    leaveInfo, 
 } = req.body;
 
-
-// Parse JSON string to object/array
 if (typeof educationHistory === 'string') {
     educationHistory = JSON.parse(educationHistory);
 }
 if (typeof trainingHistory === 'string') {
     trainingHistory = JSON.parse(trainingHistory);
 }
-// Tambahan parsing untuk leaveInfo
+
 if (typeof leaveInfo === 'string') {
     leaveInfo = JSON.parse(leaveInfo);
 }
@@ -199,7 +152,6 @@ if (typeof leaveInfo === 'string') {
             return res.status(404).json({ message: 'Employee not found' });
         }
 
-        // Update data utama
         if (username !== undefined) employee.username = username;
         if (employee_name !== undefined) employee.employee_name = employee_name;
         if (nik !== undefined) employee.nik = nik;
@@ -241,17 +193,17 @@ if (typeof leaveInfo === 'string') {
                 employee.leaveInfo.usedAnnualLeave = parseInt(leaveInfo.usedAnnualLeave) || 0;
             }
             
-            // Auto calculate remaining leave untuk memastikan konsistensi
+            // Auto calculate remaining leave 
             employee.leaveInfo.remainingAnnualLeave = 
                 employee.leaveInfo.totalAnnualLeave - employee.leaveInfo.usedAnnualLeave;
                 
-            // Pastikan remaining leave tidak negatif
+            // Remaining leave validation
             if (employee.leaveInfo.remainingAnnualLeave < 0) {
                 employee.leaveInfo.remainingAnnualLeave = 0;
             }
         }
 
-        // Handle file upload untuk foto
+        // Handle file for photo upload
         if (req.file) {
             if (employee.photo) {
                 const oldPath = path.join(__dirname, '..', 'utils', employee.photo);
@@ -270,10 +222,9 @@ if (typeof leaveInfo === 'string') {
         if (Array.isArray(educationHistory)) {
             const newEducationIds = educationHistory.filter(e => e._id).map(e => e._id.toString());
 
-            // Delete yang tidak ada di body
             employee.educationHistory = employee.educationHistory.filter(e => newEducationIds.includes(e._id.toString()));
 
-            // Update atau tambahkan
+            // Update or add education
             educationHistory.forEach(edu => {
                 if (edu._id) {
                     // Update
@@ -282,7 +233,7 @@ if (typeof leaveInfo === 'string') {
                         employee.educationHistory[index] = { ...employee.educationHistory[index].toObject(), ...edu };
                     }
                 } else {
-                    // Tambah baru
+                    // Add
                     employee.educationHistory.push(edu);
                 }
             });
@@ -292,10 +243,9 @@ if (typeof leaveInfo === 'string') {
         if (Array.isArray(trainingHistory)) {
             const newTrainingIds = trainingHistory.filter(t => t._id).map(t => t._id.toString());
 
-            // Delete yang tidak ada di body
             employee.trainingHistory = employee.trainingHistory.filter(t => newTrainingIds.includes(t._id.toString()));
 
-            // Update atau tambahkan
+            // Update or add
             trainingHistory.forEach(tr => {
                 if (tr._id) {
                     const index = employee.trainingHistory.findIndex(t => t._id.toString() === tr._id);
@@ -337,18 +287,17 @@ if (typeof leaveInfo === 'string') {
     }
 };
 
+// Edit HR Personal Data
 exports.editProfileHR = async (req, res) => {
     try {
         const hrId = req.hr._id;
         const { username, fullname, email, phone_nmb, gender, address } = req.body;
 
-        // Cek apakah HR dengan ID tersebut ada
         const hr = await HR.findById(hrId);
         if (!hr) {
             return res.status(404).json({ message: 'HR not found' });
         }
 
-        // Update data HR
         if (username) hr.username = username;
         if (fullname) hr.fullname = fullname;
         if (email) hr.email = email;
@@ -358,7 +307,7 @@ exports.editProfileHR = async (req, res) => {
 
         if (req.file) {
             if (hr.photo) {
-                const oldPath = path.join(__dirname, '..', 'utils', hr.photo.replace(/^\/+/,'')); // path relatif
+                const oldPath = path.join(__dirname, '..', 'utils', hr.photo.replace(/^\/+/,'')); 
                 if (fs.existsSync(oldPath)) {
                     fs.unlinkSync(oldPath);
                 }
@@ -374,6 +323,7 @@ exports.editProfileHR = async (req, res) => {
     }
 };
 
+// Employee Leave Approval Method
 exports.leaveApproval = async (req, res) => {
     try {
         const { status } = req.body;
@@ -437,7 +387,7 @@ exports.leaveApproval = async (req, res) => {
     }
 };
 
-// HR melihat semua pengajuan cuti
+// Get All Leave Requests Method
 exports.viewLeaveRequest = async (req, res) => {
     try {
         const leaveRequests = await LeaveRequest.find().populate('employeeId', 'username department email'); // Ambil data employee
@@ -447,7 +397,7 @@ exports.viewLeaveRequest = async (req, res) => {
     }
 };
 
-// HR melihat hanya yang statusnya "pending"
+// Get Pending Leave Requests 
 exports.viewPendingLeaveRequest = async (req, res) => {
     try {
         const pendingRequests = await LeaveRequest.find({ status: 'pending' }).populate('employeeId', 'username department email');
@@ -457,6 +407,7 @@ exports.viewPendingLeaveRequest = async (req, res) => {
     }
 };
 
+// Upload Single Salary Slip
 exports.uploadSalarySlip = async (req, res) => {
     try {
         if (!req.file) {
@@ -479,7 +430,7 @@ exports.uploadSalarySlip = async (req, res) => {
         // Format filename with timestamp
         const now = new Date();
         const pad = n => n.toString().padStart(2, '0');
-        const formattedDate = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate()+1)}-${pad((now.getHours()+7)%24)}.${pad(now.getMinutes())}.${pad(now.getSeconds())}`;
+        const formattedDate = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}-${pad(now.getHours())}.${pad(now.getMinutes())}.${pad(now.getSeconds())}`;
         const finalFilename = `${formattedDate}_${req.file.originalname}`;
         const finalPath = path.join(salaryDir, finalFilename);
 
@@ -540,6 +491,7 @@ exports.uploadSalarySlip = async (req, res) => {
     }
 };
 
+// Get Salary Slips for An Employee
 exports.getSalarySlips = async (req, res) => {
     try {
         const employee = await Employee.findById(req.params.employeeId);
@@ -548,12 +500,10 @@ exports.getSalarySlips = async (req, res) => {
             return res.status(404).json({ message: 'Employee not found' });
         }
 
-        // Cek apakah ada slip gaji
         if (!employee.salarySlips || employee.salarySlips.length === 0) {
             return res.status(404).json({ message: 'No salary slips available' });
         }
 
-        // Buat URL lengkap untuk setiap slip gaji
         const baseUrl = `${req.protocol}://${req.get('host')}`;
         const salarySlips = employee.salarySlips.map(slip => ({
             path: encodeURI(`${slip.path}`),
@@ -595,33 +545,35 @@ exports.countPendingLeaveRequests = async (req, res) => {
     }
 };
 
+// Change Password for HR Method
 exports.changePassword = async (req, res) => {
     const { oldPassword, newPassword } = req.body;
-    const hrId = req.hr._id; // ✅ perbaikan di sini
+    const hrId = req.hr._id; 
   
     try {
       const hr = await HR.findById(hrId);
       if (!hr) {
         console.log("HR not found with ID:", hrId);
-        return res.status(404).json({ message: 'HR tidak ditemukan' });
+        return res.status(404).json({ message: 'HR not found' });
       }
   
       const isMatch = await bcrypt.compare(oldPassword, hr.password);
       if (!isMatch) {
-        return res.status(400).json({ message: 'Password lama tidak sesuai' });
+        return res.status(400).json({ message: 'Old Password did not matched' });
       }
   
       const hashedNewPassword = await bcrypt.hash(newPassword, 10);
       hr.password = hashedNewPassword;
       await hr.save();
   
-      res.json({ message: 'Password berhasil diubah' });
+      res.json({ message: 'Password changed successfully' });
     } catch (err) {
       console.error(err);
-      res.status(500).json({ message: 'Terjadi kesalahan server' });
+      res.status(500).json({ message: 'Internal Server Error' });
     }
-  };
+};
   
+// Get Gender Summary of Employees
 exports.getGenderSummary = async (req, res) => {
     try {
         const maleCount = await Employee.countDocuments({ gender: 'male' });
@@ -634,6 +586,7 @@ exports.getGenderSummary = async (req, res) => {
     }
 };
 
+// Get Department Distribution
 exports.getDepartmentDistribution = async (req, res) => {
     try {
         const distribution = await Employee.aggregate([
@@ -659,17 +612,17 @@ exports.getDepartmentDistribution = async (req, res) => {
     }
 };
 
-
+// Create Announcement Method
 exports.createAnnouncement = async (req, res) => {
   try {
     const { title, description, date, time, color } = req.body;
     
-    // Validasi input
+    // INput validation
     if (!title || !date) {
       return res.status(400).json({ message: 'Title and date are required' });
     }
 
-    // Pastikan HR pembuat ada
+    // Check HR is available
     const hr = await HR.findById(req.hr._id);
     if (!hr) {
       return res.status(404).json({ message: 'HR not found' });
@@ -677,12 +630,12 @@ exports.createAnnouncement = async (req, res) => {
 
     const announcement = new Announcement({
       title,
-      description: description || '', // Handle jika description kosong
-      date: new Date(date), // Pastikan format Date
-      time: time || '', // Handle jika time kosong
-      color: color || '#3B82F6', // Default color
+      description: description || '', 
+      date: new Date(date), 
+      time: time || '', 
+      color: color || '#3B82F6', 
       createdBy: req.hr._id,
-      createdByName: hr.username // Ambil username dari HR
+      createdByName: hr.username 
     });
 
     await announcement.save();
@@ -702,7 +655,7 @@ exports.getAnnouncementsByDate = async (req, res) => {
     const { date } = req.params;
     const announcements = await Announcement.find({
       date: new Date(date)
-    }).sort({ time: 1 }).populate('createdBy', 'username'); // Remove createdBy filter and populate creator info
+    }).sort({ time: 1 }).populate('createdBy', 'username'); 
 
     res.json(announcements);
   } catch (error) {
@@ -720,7 +673,7 @@ exports.getUpcomingAnnouncements = async (req, res) => {
       date: { $gte: today }
     }).sort({ date: 1, time: 1 })
       .limit(5)
-      .populate('createdBy', 'username'); // Remove createdBy filter and populate creator info
+      .populate('createdBy', 'username'); 
 
     res.json(announcements);
   } catch (error) {
@@ -728,6 +681,7 @@ exports.getUpcomingAnnouncements = async (req, res) => {
   }
 };
 
+// Delete Announcement Method
 exports.deleteAnnouncement = async (req, res) => {
   try {
     const { id } = req.params;
@@ -760,7 +714,7 @@ exports.deleteAnnouncement = async (req, res) => {
     }
 
     // If authorized, delete the announcement
-    await announcement.deleteOne(); // Changed from remove() to deleteOne()
+    await announcement.deleteOne(); 
 
     res.json({ message: 'Announcement deleted successfully' });
   } catch (error) {
@@ -769,6 +723,7 @@ exports.deleteAnnouncement = async (req, res) => {
   }
 };
 
+// Upload Batch Salary Slip in Zip File
 exports.uploadSalarySlipZip = async (req, res) => {
     try {
         if (!req.file) {
@@ -782,7 +737,6 @@ exports.uploadSalarySlipZip = async (req, res) => {
             fs.mkdirSync(extractDir, { recursive: true });
         }
 
-        // Ekstrak file ZIP ke folder sementara
         await fs.createReadStream(zipPath)
             .pipe(unzipper.Extract({ path: extractDir }))
             .promise();
@@ -794,14 +748,14 @@ exports.uploadSalarySlipZip = async (req, res) => {
         let unmatchedFiles = [];
         let failedFiles = [];
 
-        // Fungsi normalisasi yang lebih robust
+        // Normalize the file name
         const normalize = (str) => {
             return str
                 .toLowerCase()
                 .replace(/\s/g, '')
                 .normalize('NFD')
-                .replace(/[\u0300-\u036f]/g, '') // Hapus diakritik
-                .replace(/[^a-z0-9]/g, ''); // Hapus karakter khusus
+                .replace(/[\u0300-\u036f]/g, '') 
+                .replace(/[^a-z0-9]/g, ''); 
         };
 
         for (const file of files) {
@@ -809,47 +763,44 @@ exports.uploadSalarySlipZip = async (req, res) => {
             let finalPath, finalFilename;
 
             try {
-                // Ambil nama dari file (tanpa prefix dan ekstensi)
+                // Take the filename
                 const fileNameNormalized = normalize(
                     file.replace(/^salary_/i, '').replace(/\.pdf$/i, '')
                 );
 
-                // Cari employee yang cocok
+                // Find the matched employee name
                 const matchedEmployee = employees.find(emp => 
                     normalize(emp.employee_name) === fileNameNormalized
                 );
 
                 if (matchedEmployee) {
-                    // Format tanggal untuk nama file
+                    // Date for the filename
                     const now = new Date();
                     const pad = n => n.toString().padStart(2, '0');
-                    const formattedDate = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate()+1)}-${pad((now.getHours()+7)%24)}.${pad(now.getMinutes())}.${pad(now.getSeconds())}`;
+                    const formattedDate = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}-${pad(now.getHours())}.${pad(now.getMinutes())}.${pad(now.getSeconds())}`;
                     finalFilename = `${formattedDate}_${file}`;
                     finalPath = path.join(__dirname, '../utils/uploads/salary-slips', finalFilename);
 
-                    // Pindahkan file ke folder permanen
                     fs.renameSync(filePath, finalPath);
 
-                    // Pastikan salarySlips adalah array
                     if (!matchedEmployee.salarySlips) {
                         matchedEmployee.salarySlips = [];
                     }
 
-                    // Tambahkan slip baru ke array
+                    // Save the salary slip
                     matchedEmployee.salarySlips.push({
                         path: `/uploads/salary-slips/${finalFilename}`,
                         date: now
                     });
 
-                    // Urutkan berdasarkan tanggal (terbaru pertama)
+                    // Sort the salary from the latest
                     matchedEmployee.salarySlips.sort((a, b) => b.date - a.date);
 
-                    // Hapus slip terlama jika lebih dari 3
+                    // Delete the oldest salary if already three salary slips
                     if (matchedEmployee.salarySlips.length > 3) {
                         const slipsToRemove = matchedEmployee.salarySlips.slice(3);
                         matchedEmployee.salarySlips = matchedEmployee.salarySlips.slice(0, 3);
                         
-                        // Hapus file fisik slip terlama
                         slipsToRemove.forEach(slip => {
                             const fileToDelete = path.join(__dirname, '../utils', slip.path);
                             if (fs.existsSync(fileToDelete)) {
@@ -858,15 +809,14 @@ exports.uploadSalarySlipZip = async (req, res) => {
                         });
                     }
 
-                    // Simpan perubahan
+                    // Save Changes
                     await matchedEmployee.save();
                     matched++;
                 } else {
                     unmatchedFiles.push(file);
-                    fs.unlinkSync(filePath); // Hapus file tak dikenali
+                    fs.unlinkSync(filePath); 
                 }
             } catch (error) {
-                // Jika gagal, kembalikan file ke folder tmp
                 if (finalPath && fs.existsSync(finalPath)) {
                     fs.renameSync(finalPath, filePath);
                 }
@@ -878,7 +828,6 @@ exports.uploadSalarySlipZip = async (req, res) => {
             }
         }
 
-        // Bersihkan file ZIP dan folder sementara
         fs.unlinkSync(zipPath);
         fs.rmdirSync(extractDir, { recursive: true });
 
@@ -894,6 +843,8 @@ exports.uploadSalarySlipZip = async (req, res) => {
         res.status(500).json({ message: 'Internal Server Error', error });
     }
 };
+
+// Register Employee in Batch Using Excel
 exports.uploadExcelEmployees = async (req, res) => {
   try {
     if (!req.file) {
@@ -904,7 +855,7 @@ exports.uploadExcelEmployees = async (req, res) => {
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
     const data = xlsx.utils.sheet_to_json(sheet, { defval: '' });
 
-    fs.unlinkSync(req.file.path); // hapus file setelah dibaca
+    fs.unlinkSync(req.file.path); 
 
     const employees = await Promise.all(
       data.map(async (emp) => {
@@ -962,6 +913,7 @@ exports.uploadExcelEmployees = async (req, res) => {
   }
 };
 
+// Format Date Function for uploadExcelEmployee Method
 function formatDate(excelDate) {
   if (!excelDate) return '';
   if (typeof excelDate === 'string') return excelDate.split('T')[0];
@@ -969,6 +921,7 @@ function formatDate(excelDate) {
   return date.toISOString().split('T')[0];
 }
 
+// Get Employee Attendance History
 exports.getEmployeeAttendanceHistory = async (req, res) => {
   try {
     const employeeId = req.params.id;

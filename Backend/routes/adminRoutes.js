@@ -5,8 +5,9 @@ const authenticateAdmin = require('../middleware/authenticateAdmin');
 const { checkBlacklistedToken, blacklistedTokens } = require('../middleware/checkBlacklistedToken');
 
 router.post('/register', adminController.registerAdmin);
+router.delete('/delete/:id', authenticateAdmin, adminController.deleteAdmin)
 router.post('/login', adminController.loginAdmin);
-router.post('/logout',adminController.logoutAdmin);
+router.post('/logout',authenticateAdmin, adminController.logoutAdmin);
 router.get('/', authenticateAdmin, checkBlacklistedToken, adminController.getAdmin);
 router.get('/hr', authenticateAdmin, checkBlacklistedToken, adminController.getAllHR);
 router.post('/hr/register', authenticateAdmin, checkBlacklistedToken, adminController.registerHR);

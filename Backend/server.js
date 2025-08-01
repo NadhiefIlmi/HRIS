@@ -1,4 +1,5 @@
 require('dotenv').config({ path: __dirname + '/.env' });
+require('./utils/autoCheckout');
 const express = require('express');
 const connectDB = require('./config/db');
 const cors = require('cors');
@@ -10,6 +11,12 @@ app.use(cors());
 app.use('/uploads', express.static(path.join(__dirname, 'utils/uploads')));
 
 connectDB();
+
+// app.use(express.static(path.join(__dirname, '../../frontend')));
+
+// app.get('*', (req, res) => {
+//   res.sendFile(path.join(__dirname, '../../frontend', 'index.html'));
+// });
 
 /* ENDPOINT RESET PASSWORD */
 const resetPassword = require('./routes/resetPasswordRoutes');
